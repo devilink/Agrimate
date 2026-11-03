@@ -1,0 +1,971 @@
+// Agrimate data model. Money = BigInt paise. Quantities = Int kg. Percentages = Int basis points. Times = UTC.
+// *Enc columns are AES-256-GCM ciphertext; *Hash columns are HMAC blind indexes for lookup.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  BUYER
+  FARMER
+  INSPECTOR
+  LOGISTICS
+  ADMIN
+}
+
+enum OrderState {
+  MATCHED
+  AWAITING_ADVANCE
+  ADVANCE_LOCKED
+  LOGISTICS_PENDING
+  LOGISTICS_SECURED
+  AWAITING_BALANCE
+  FULLY_FUNDED
+  INSPECTION_SCHEDULED
+  INSPECTED
+  SELF_CERTIFIED
+  IN_TRANSIT
+  DELIVERED
+  DISPUTE_WINDOW
+  SETTLED
+  FARMER_DEFAULTED
+  REFUNDED
+  BUYER_DEFAULTED
+  DISPUTED
+  RESOLVED
+  CANCELLED
+}
+
+enum RfqState {
+  RFQ_OPEN
+  BIDDING
+  MATCHED
+  CANCELLED
+  EXPIRED
+}
+
+enum ListingState {
+  LISTED
+  MATCHED
+  WITHDRAWN
+}
+
+enum BidState {
+  SUBMITTED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum OrderFlow {
+  RFQ
+  CATALOG
+}
+
+enum TrancheKind {
+  ADVANCE
+  BALANCE
+  FREIGHT
+}
+
+enum TrancheStatus {
+  PENDING
+  PARTIAL
+  PAID
+}
+
+enum LogisticsMode {
+  PLATFORM
+  EXTERNAL
+}
+
+enum VerificationStatus {
+  NOT_SUBMITTED
+  PENDING
+  VERIFIED
+  MANUAL_REVIEW
+  REJECTED
+}
+
+enum FarmerType {
+  INDIVIDUAL
+  FPO
+}
+
+enum LogisticsPartnerType {
+  INDIVIDUAL
+  AGENCY
+}
+
+enum DegreeType {
+  BSC_AGRICULTURE
+  MSC_AGRICULTURE
+  BSC_ANIMAL_HUSBANDRY
+  MSC_ANIMAL_HUSBANDRY
+  VETERINARY
+}
+
+enum FilePurpose {
+  KYC_DOC
+  DEGREE_CERT
+  RC
+  DRIVING_LICENCE
+  FITNESS_CERT
+  ORGANIC_CERT
+  DISPATCH_PHOTO
+  INSPECTION_PHOTO
+  SELF_CERT_VIDEO
+  EWAY_BILL
+  POD_PHOTO
+  POD_SIGNATURE
+  DISPUTE_EVIDENCE
+  SPOT_TEST_REPORT
+}
+
+enum DisputeType {
+  WEIGHT
+  QUALITY
+}
+
+enum DisputeStatus {
+  OPEN
+  RESOLVED
+}
+
+enum DisputeOutcome {
+  RELEASE_TO_FARMER
+  PARTIAL_REFUND
+  FULL_REFUND_FARMER_FAULT
+}
+
+enum SpotTestStatus {
+  REQUESTED
+  PASSED
+  FAILED
+}
+
+enum InspectionStatus {
+  UNASSIGNED
+  ASSIGNED
+  CHECKED_IN
+  INSPECTED
+  FAILED_GRADE
+  WAIVED_SELF_CERT
+}
+
+enum TripStatus {
+  OPEN
+  ACCEPTED
+  PICKED_UP
+  DELIVERED
+  CANCELLED
+}
+
+enum PayoutStatus {
+  BLOCKED
+  PENDING
+  PROCESSED
+  FAILED
+}
+
+enum PayeeType {
+  FARMER
+  LOGISTICS
+  INSPECTOR
+}
+
+enum InvoiceType {
+  BUYER_INVOICE
+  FARMER_STATEMENT
+  LOGISTICS_PAYOUT
+}
+
+enum SlaTimerKind {
+  REMINDER_T24
+  REMINDER_T6
+  REMINDER_T1
+  SLA_BREACH
+  INSPECTOR_RETRY
+  SELF_CERT_FALLBACK
+  DISPUTE_WINDOW_END
+}
+
+enum TimerStatus {
+  PENDING
+  FIRED
+  CANCELLED
+}
+
+enum AlertKind {
+  UNDERPAYMENT
+  OVERPAYMENT
+  UNMATCHED_PAYMENT
+  BUYER_DEFAULT
+  SLA_BREACH
+  INSPECTION_FAILED
+  INSPECTOR_ESCALATION
+  RECONCILIATION_MISMATCH
+  PAYOUT_FAILED
+}
+
+enum OutboxStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum LedgerAccountType {
+  ASSET
+  LIABILITY
+  REVENUE
+  EXPENSE
+}
+
+
+// ---- Identity ----------------------------------------------------------------------------------------------------
+model User {
+  id            String   @id @default(cuid())
+  role          Role
+  name          String
+  phoneEnc      String
+  phoneHash     String   @unique
+  phoneLast4    String
+  email         String?  @unique
+  passwordHash  String?
+  language      String   @default("en")
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  buyer      BuyerProfile?
+  farmer     FarmerProfile?
+  inspector  InspectorProfile?
+  logistics  LogisticsProfile?
+  refreshTokens RefreshToken[]
+}
+
+model OtpChallenge {
+  id         String   @id @default(cuid())
+  phoneHash  String
+  codeHash   String
+  attempts   Int      @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+  @@index([phoneHash, createdAt])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+}
+
+model BuyerProfile {
+  userId       String @id
+  user         User   @relation(fields: [userId], references: [id])
+  companyName  String
+  gstin        String?
+  panEnc       String?
+  panLast4     String?
+  kybStatus    VerificationStatus @default(NOT_SUBMITTED)
+  kybResponse  Json?
+  kybNote      String?
+  defaultPin   String?
+  orders       Order[]
+  rfqs         Rfq[]
+}
+
+model FarmerProfile {
+  userId        String @id
+  user          User   @relation(fields: [userId], references: [id])
+  type          FarmerType @default(INDIVIDUAL)
+  fpoName       String?
+  panEnc        String?
+  panLast4      String?
+  panName       String?
+  bankAccountEnc String?
+  bankLast4     String?
+  bankIfsc      String?
+  bankHolderName String?
+  kycStatus     VerificationStatus @default(NOT_SUBMITTED)
+  kycResponse   Json?
+  kycNote       String?
+  /// Hard rule: stays false until bank-holder name matches PAN name (automatically or by admin decision).
+  payoutsEnabled Boolean @default(false)
+  fundAccountId String?
+  pin           String?
+  lat           Float?
+  lng           Float?
+  district      String?
+  state         String?
+  listings      Listing[]
+  bids          Bid[]
+  orders        Order[]
+  organicCerts  OrganicCertificate[]
+}
+
+model InspectorProfile {
+  userId        String @id
+  user          User   @relation(fields: [userId], references: [id])
+  degreeType    DegreeType?
+  degreeFileId  String?
+  status        VerificationStatus @default(NOT_SUBMITTED)
+  statusNote    String?
+  available     Boolean @default(false)
+  serviceRadiusKm Int   @default(50)
+  lat           Float?
+  lng           Float?
+  pin           String?
+  fundAccountId String?
+  inspections   Inspection[]
+}
+
+model LogisticsProfile {
+  userId         String @id
+  user           User   @relation(fields: [userId], references: [id])
+  partnerType    LogisticsPartnerType @default(INDIVIDUAL)
+  companyName    String?
+  gstin          String?
+  rcFileId       String?
+  dlFileId       String?
+  fitnessFileId  String?
+  status         VerificationStatus @default(NOT_SUBMITTED)
+  statusNote     String?
+  noCoLoadingAcceptedAt DateTime?
+  fundAccountId  String?
+  vehicles       Vehicle[]
+  trips          Trip[]
+}
+
+model Vehicle {
+  id         String @id @default(cuid())
+  partnerId  String
+  partner    LogisticsProfile @relation(fields: [partnerId], references: [userId])
+  tierId     String
+  tier       VehicleTier @relation(fields: [tierId], references: [id])
+  regNo      String @unique
+  capacityKg Int
+  active     Boolean @default(true)
+  createdAt  DateTime @default(now())
+  trips      Trip[]
+}
+
+// ---- Masters -----------------------------------------------------------------------------------------------------
+model Commodity {
+  id      String @id @default(cuid())
+  code    String @unique
+  name    String
+  /// Translations by language code, for vernacular portals.
+  names   Json   @default("{}")
+  active  Boolean @default(true)
+  grades  Grade[]
+  rfqs    Rfq[]
+  listings Listing[]
+  orders  Order[]
+  prices  MarketPrice[]
+}
+
+model Grade {
+  id          String @id @default(cuid())
+  commodityId String
+  commodity   Commodity @relation(fields: [commodityId], references: [id])
+  code        String
+  name        String
+  /// GradeParameter[]: the structured spec that drives listing, RFQ and inspection forms.
+  parameters  Json
+  active      Boolean @default(true)
+  rfqs        Rfq[]
+  listings    Listing[]
+  orders      Order[]
+  @@unique([commodityId, code])
+}
+
+model VehicleTier {
+  id     String @id @default(cuid())
+  code   String @unique
+  name   String
+  minKg  Int
+  maxKg  Int
+  ratePaisePerKm BigInt
+  active Boolean @default(true)
+  vehicles Vehicle[]
+}
+
+model InspectionFeeTier {
+  id             String @id @default(cuid())
+  maxKgInclusive Int?   @unique
+  feePaise       BigInt
+}
+
+/// Key/value platform config (fees, SLA days, radii…). Values are JSON; read through ConfigService with typed defaults.
+model PlatformConfig {
+  key       String @id
+  value     Json
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+}
+
+model ContractTerms {
+  id        String @id @default(cuid())
+  version   String @unique
+  body      String
+  active    Boolean @default(false)
+  createdAt DateTime @default(now())
+  orders    Order[]
+}
+
+model PinCode {
+  pin      String @id
+  district String
+  state    String
+  lat      Float
+  lng      Float
+}
+
+model DistanceCache {
+  id        String @id @default(cuid())
+  originPin String
+  destPin   String
+  metres    Int
+  provider  String
+  createdAt DateTime @default(now())
+  @@unique([originPin, destPin])
+}
+
+// ---- Files -------------------------------------------------------------------------------------------------------
+model FileObject {
+  id          String @id @default(cuid())
+  ownerId     String
+  purpose     FilePurpose
+  key         String @unique
+  contentType String
+  sizeBytes   Int?
+  /// SHA-256 declared by the device before upload.
+  sha256Declared String
+  /// SHA-256 computed by the server from stored bytes on completion.
+  sha256Server   String?
+  completedAt DateTime?
+  multipartUploadId String?
+  orderId     String?
+  captureSessionId String?
+  createdAt   DateTime @default(now())
+  @@index([ownerId])
+  @@index([orderId])
+}
+
+model OrganicCertificate {
+  id        String @id @default(cuid())
+  farmerId  String
+  farmer    FarmerProfile @relation(fields: [farmerId], references: [userId])
+  fileId    String
+  certifier String
+  certNumber String
+  expiresAt DateTime
+  status    VerificationStatus @default(PENDING)
+  note      String?
+  createdAt DateTime @default(now())
+  listings  Listing[]
+}
+
+// ---- Marketplace -------------------------------------------------------------------------------------------------
+model Rfq {
+  id           String @id @default(cuid())
+  code         String @unique
+  buyerId      String
+  buyer        BuyerProfile @relation(fields: [buyerId], references: [userId])
+  commodityId  String
+  commodity    Commodity @relation(fields: [commodityId], references: [id])
+  gradeId      String
+  grade        Grade @relation(fields: [gradeId], references: [id])
+  quantityKg   Int
+  deliveryPin  String
+  neededBy     DateTime
+  suggestedPricePaisePerKg BigInt?
+  targetPricePaisePerKg    BigInt
+  organicRequired Boolean @default(false)
+  state        RfqState @default(RFQ_OPEN)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  bids         Bid[]
+  order        Order?
+  @@index([state])
+  @@index([buyerId])
+}
+
+model Bid {
+  id        String @id @default(cuid())
+  rfqId     String
+  rfq       Rfq @relation(fields: [rfqId], references: [id])
+  farmerId  String
+  farmer    FarmerProfile @relation(fields: [farmerId], references: [userId])
+  quantityKg Int
+  pricePaisePerKg BigInt
+  state     BidState @default(SUBMITTED)
+  createdAt DateTime @default(now())
+  @@unique([rfqId, farmerId])
+}
+
+model Listing {
+  id           String @id @default(cuid())
+  code         String @unique
+  farmerId     String
+  farmer       FarmerProfile @relation(fields: [farmerId], references: [userId])
+  commodityId  String
+  commodity    Commodity @relation(fields: [commodityId], references: [id])
+  gradeId      String
+  grade        Grade @relation(fields: [gradeId], references: [id])
+  quantityKg   Int
+  pricePaisePerKg BigInt
+  pickupPin    String
+  organicCertId String?
+  organicCert  OrganicCertificate? @relation(fields: [organicCertId], references: [id])
+  state        ListingState @default(LISTED)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  order        Order?
+  @@index([state])
+}
+
+// ---- Orders ------------------------------------------------------------------------------------------------------
+model Order {
+  id          String @id @default(cuid())
+  code        String @unique
+  flow        OrderFlow
+  state       OrderState @default(MATCHED)
+  buyerId     String
+  buyer       BuyerProfile @relation(fields: [buyerId], references: [userId])
+  farmerId    String
+  farmer      FarmerProfile @relation(fields: [farmerId], references: [userId])
+  rfqId       String? @unique
+  rfq         Rfq? @relation(fields: [rfqId], references: [id])
+  listingId   String? @unique
+  listing     Listing? @relation(fields: [listingId], references: [id])
+  commodityId String
+  commodity   Commodity @relation(fields: [commodityId], references: [id])
+  gradeId     String
+  grade       Grade @relation(fields: [gradeId], references: [id])
+  isOrganic   Boolean @default(false)
+  quantityKg  Int
+  pricePaisePerKg BigInt
+  gmvPaise    BigInt
+  // Snapshot of commercial terms at contract time — later admin config changes never touch a live order.
+  advanceBps  Int
+  commissionBps Int
+  freightMarkupBps Int
+  inspectionFeePaise BigInt
+  inspectionFeePayer String @default("FARMER")
+  slaDays     Int
+  disputeWindowHours Int
+  pickupPin   String
+  pickupLat   Float
+  pickupLng   Float
+  deliveryPin String
+  neededBy    DateTime?
+  contractTermsId String
+  contractTerms ContractTerms @relation(fields: [contractTermsId], references: [id])
+  contractAcceptedAt DateTime?
+  t0At        DateTime?
+  slaDeadlineAt DateTime?
+  inspectionDayAt DateTime?
+  logisticsMode LogisticsMode?
+  externalVehicleNo String?
+  externalDriverPhoneEnc String?
+  selfCertRequired Boolean @default(false)
+  dispatchedWeightKg Int?
+  receivedWeightKg   Int?
+  deliveredAt DateTime?
+  disputeDeadlineAt DateTime?
+  buyerRefundPaise BigInt @default(0)
+  settledAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  events      OrderEvent[]
+  virtualAccount VirtualAccount?
+  tranches    Tranche[]
+  inspection  Inspection?
+  selfCert    SelfCertification?
+  trip        Trip?
+  disputes    Dispute[]
+  spotTests   SpotTest[]
+  timers      SlaTimer[]
+  payouts     Payout[]
+  invoices    Invoice[]
+  dispatchPhotos DispatchPhoto[]
+  @@index([buyerId, state])
+  @@index([farmerId, state])
+  @@index([state])
+}
+
+/// Immutable (DB trigger blocks UPDATE/DELETE).
+model OrderEvent {
+  id        String @id @default(cuid())
+  orderId   String
+  order     Order @relation(fields: [orderId], references: [id])
+  actorId   String?
+  actorRole String
+  from      OrderState?
+  to        OrderState
+  payload   Json @default("{}")
+  createdAt DateTime @default(now())
+  @@index([orderId, createdAt])
+}
+
+model DispatchPhoto {
+  id      String @id @default(cuid())
+  orderId String
+  order   Order @relation(fields: [orderId], references: [id])
+  fileId  String
+  createdAt DateTime @default(now())
+}
+
+// ---- Payments ----------------------------------------------------------------------------------------------------
+model VirtualAccount {
+  id          String @id @default(cuid())
+  orderId     String @unique
+  order       Order @relation(fields: [orderId], references: [id])
+  gatewayId   String @unique
+  ifsc        String
+  accountNumber String
+  beneficiary String
+  closedAt    DateTime?
+  createdAt   DateTime @default(now())
+  payments    GatewayPayment[]
+}
+
+model Tranche {
+  id          String @id @default(cuid())
+  orderId     String
+  order       Order @relation(fields: [orderId], references: [id])
+  kind        TrancheKind
+  expectedPaise BigInt
+  receivedPaise BigInt @default(0)
+  status      TrancheStatus @default(PENDING)
+  paidAt      DateTime?
+  createdAt   DateTime @default(now())
+  @@unique([orderId, kind])
+}
+
+/// One row per gateway payment. The unique gatewayPaymentId is what makes webhook replay harmless.
+model GatewayPayment {
+  id          String @id @default(cuid())
+  virtualAccountId String?
+  virtualAccount VirtualAccount? @relation(fields: [virtualAccountId], references: [id])
+  gatewayPaymentId String @unique
+  amountPaise BigInt
+  feePaise    BigInt @default(0)
+  /// Portion refunded so far.
+  refundedPaise BigInt @default(0)
+  /// Portion that matched no open tranche; stays in escrow until an admin refunds it.
+  excessPaise BigInt @default(0)
+  payerBankRef String?
+  raw         Json
+  createdAt   DateTime @default(now())
+}
+
+model WebhookEvent {
+  id        String @id @default(cuid())
+  provider  String
+  eventId   String
+  eventType String
+  raw       Json
+  createdAt DateTime @default(now())
+  @@unique([provider, eventId])
+}
+
+model Refund {
+  id        String @id @default(cuid())
+  orderId   String
+  gatewayPaymentId String
+  gatewayRefundId  String @unique
+  amountPaise BigInt
+  reason    String
+  createdAt DateTime @default(now())
+  @@index([orderId])
+}
+
+model Payout {
+  id        String @id @default(cuid())
+  orderId   String
+  order     Order @relation(fields: [orderId], references: [id])
+  payeeType PayeeType
+  payeeId   String
+  amountPaise BigInt
+  status    PayoutStatus
+  statusNote String?
+  gatewayTransferId String?
+  idempotencyKey String @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([payeeType, payeeId])
+}
+
+model Invoice {
+  id       String @id @default(cuid())
+  number   String @unique
+  orderId  String
+  order    Order @relation(fields: [orderId], references: [id])
+  type     InvoiceType
+  /// Frozen figures the PDF is rendered from.
+  data     Json
+  createdAt DateTime @default(now())
+  @@unique([orderId, type])
+}
+
+// ---- Ledger: append-only, each journal balanced. Triggers enforce both in the database. ---------------------------
+model LedgerAccount {
+  id    String @id @default(cuid())
+  code  String @unique
+  type  LedgerAccountType
+  postings LedgerPosting[]
+}
+
+model JournalEntry {
+  id       String @id @default(cuid())
+  /// Same event can never post twice.
+  idempotencyKey String @unique
+  type     String
+  orderId  String?
+  memo     String?
+  createdAt DateTime @default(now())
+  postings LedgerPosting[]
+  @@index([orderId])
+}
+
+model LedgerPosting {
+  id        String @id @default(cuid())
+  journalId String
+  journal   JournalEntry @relation(fields: [journalId], references: [id])
+  accountId String
+  account   LedgerAccount @relation(fields: [accountId], references: [id])
+  /// Signed: debit positive, credit negative.
+  amountPaise BigInt
+  createdAt DateTime @default(now())
+  @@index([accountId])
+  @@index([journalId])
+}
+
+model ReconciliationReport {
+  id        String @id @default(cuid())
+  forDate   String @unique
+  ledgerInPaise  BigInt
+  gatewayInPaise BigInt
+  ledgerOutPaise  BigInt
+  gatewayOutPaise BigInt
+  matched   Boolean
+  details   Json @default("{}")
+  createdAt DateTime @default(now())
+}
+
+/// Persistent record of what the mock gateway "did", so reconciliation also works in mock mode and survives restarts.
+model MockGatewayTxn {
+  id       String @id @default(cuid())
+  kind     String
+  ref      String @unique
+  amountPaise BigInt
+  feePaise BigInt @default(0)
+  meta     Json @default("{}")
+  createdAt DateTime @default(now())
+}
+
+// ---- SLA, inspection, self-certification ---------------------------------------------------------------------------
+model SlaTimer {
+  id      String @id @default(cuid())
+  orderId String
+  order   Order @relation(fields: [orderId], references: [id])
+  kind    SlaTimerKind
+  fireAt  DateTime
+  status  TimerStatus @default(PENDING)
+  firedAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([status, fireAt])
+  @@index([orderId])
+}
+
+model AdminAlert {
+  id       String @id @default(cuid())
+  kind     AlertKind
+  orderId  String?
+  message  String
+  data     Json @default("{}")
+  resolvedAt DateTime?
+  resolvedBy String?
+  createdAt DateTime @default(now())
+  @@index([kind, resolvedAt])
+}
+
+model Inspection {
+  id        String @id @default(cuid())
+  orderId   String @unique
+  order     Order @relation(fields: [orderId], references: [id])
+  inspectorId String?
+  inspector InspectorProfile? @relation(fields: [inspectorId], references: [userId])
+  status    InspectionStatus @default(UNASSIGNED)
+  scheduledFor DateTime
+  assignAttempts Int @default(0)
+  checkInAt DateTime?
+  checkInLat Float?
+  checkInLng Float?
+  checkInMetres Int?
+  readings  Json?
+  gradeCheck Json?
+  scaleWeightKg Int?
+  photoFileIds String[] @default([])
+  inspectedAt DateTime?
+  deviationAcceptedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([inspectorId, scheduledFor])
+}
+
+/// Server-issued, single-order capture session: self-cert clips can only attach through one, so gallery uploads have no path in.
+model CaptureSession {
+  id       String @id @default(cuid())
+  orderId  String
+  farmerId String
+  kind     String
+  tokenHash String @unique
+  startedAt DateTime
+  expiresAt DateTime
+  usedAt   DateTime?
+  createdAt DateTime @default(now())
+  @@index([orderId])
+}
+
+model SelfCertification {
+  id        String @id @default(cuid())
+  orderId   String @unique
+  order     Order @relation(fields: [orderId], references: [id])
+  scaleVideoFileId   String?
+  vehicleVideoFileId String?
+  scaleCapture   Json?
+  vehicleCapture Json?
+  certifiedWeightKg Int?
+  submittedAt DateTime?
+  createdAt DateTime @default(now())
+}
+
+// ---- Logistics -----------------------------------------------------------------------------------------------------
+model Trip {
+  id        String @id @default(cuid())
+  orderId   String @unique
+  order     Order @relation(fields: [orderId], references: [id])
+  partnerId String?
+  partner   LogisticsProfile? @relation(fields: [partnerId], references: [userId])
+  vehicleId String?
+  vehicle   Vehicle? @relation(fields: [vehicleId], references: [id])
+  status    TripStatus @default(OPEN)
+  /// Zero until the freight tranche is paid; open trips are only offered to partners once funded.
+  fundedAt  DateTime?
+  tierCode  String
+  distanceMetres Int
+  ratePaisePerKm BigInt
+  loadingFeePaise BigInt
+  baseCostPaise BigInt
+  markupPaise BigInt
+  finalFreightPaise BigInt
+  displayPtkmPaise BigInt
+  ewayBillFileId String?
+  ewayBillNumber String?
+  noCoLoadingAttestedAt DateTime?
+  acceptedAt DateTime?
+  pickedUpAt DateTime?
+  deliveredAt DateTime?
+  podPhotoFileId String?
+  podSignatureFileId String?
+  podLat Float?
+  podLng Float?
+  receiverOtpHash String?
+  podOtpVerified Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([status])
+}
+
+// ---- Quality ------------------------------------------------------------------------------------------------------
+model Dispute {
+  id       String @id @default(cuid())
+  orderId  String
+  order    Order @relation(fields: [orderId], references: [id])
+  raisedBy String
+  type     DisputeType
+  reason   String
+  evidenceFileIds String[] @default([])
+  discrepancyPercent Float?
+  status   DisputeStatus @default(OPEN)
+  outcome  DisputeOutcome?
+  refundPaise BigInt?
+  resolutionNote String?
+  resolvedBy String?
+  resolvedAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([orderId])
+  @@index([status])
+}
+
+model SpotTest {
+  id       String @id @default(cuid())
+  orderId  String
+  order    Order @relation(fields: [orderId], references: [id])
+  requestedBy String
+  status   SpotTestStatus @default(REQUESTED)
+  reportFileId String?
+  resultNote String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---- Market data -----------------------------------------------------------------------------------------------------
+model MarketPrice {
+  id       String @id @default(cuid())
+  commodityId String
+  commodity Commodity @relation(fields: [commodityId], references: [id])
+  market   String
+  district String?
+  state    String
+  date     DateTime @db.Date
+  minPaisePerKg BigInt
+  maxPaisePerKg BigInt
+  modalPaisePerKg BigInt
+  source   String
+  @@unique([commodityId, market, date])
+  @@index([commodityId, date])
+}
+
+// ---- Notifications & audit -----------------------------------------------------------------------------------------
+model NotificationOutbox {
+  id       String @id @default(cuid())
+  userId   String
+  template String
+  params   Json @default("{}")
+  dedupeKey String? @unique
+  status   OutboxStatus @default(PENDING)
+  attempts Int @default(0)
+  lastError String?
+  sentAt   DateTime?
+  createdAt DateTime @default(now())
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+}
+
+model AuditLog {
+  id       String @id @default(cuid())
+  actorId  String?
+  actorRole String
+  action   String
+  entity   String
+  entityId String?
+  data     Json @default("{}")
+  createdAt DateTime @default(now())
+  @@index([entity, entityId])
+  @@index([createdAt])
+}

@@ -1,0 +1,42 @@
+name: agrimate
+# Everything runs with zero real API keys: all providers default to their mock adapters (see .env.example).
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: agrimate
+      POSTGRES_PASSWORD: agrimate
+      POSTGRES_DB: agrimate
+    ports: ['5432:5432']
+    volumes: ['pgdata:/var/lib/postgresql/data']
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U agrimate']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command: ['redis-server', '--appendonly', 'yes']
+    ports: ['6379:6379']
+    volumes: ['redisdata:/data']
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  minio:
+    # The official minio/minio images are no longer anonymously pullable; Chainguard's build is the same server.
+    image: cgr.dev/chainguard/minio:latest
+    command: ['server', '/data', '--console-address', ':9001']
+    environment:
+      MINIO_ROOT_USER: agrimate
+      MINIO_ROOT_PASSWORD: agrimate-secret
+    ports: ['9000:9000', '9001:9001']
+    volumes: ['miniodata:/data']
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:

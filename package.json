@@ -1,0 +1,17 @@
+{
+  "name": "agrimate",
+  "private": true,
+  "packageManager": "pnpm@11.15.0",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel --filter=./apps/api --filter=./apps/web-* --filter=./apps/pwa-*",
+    "test": "turbo run test --concurrency=1",
+    "typecheck": "turbo run typecheck",
+    "db:migrate": "pnpm --filter @agrimate/api exec prisma migrate deploy",
+    "db:seed": "pnpm --filter @agrimate/api run seed",
+    "infra:up": "docker compose -f infra/docker-compose.yml up -d postgres redis minio minio-init",
+    "gen:client": "pnpm --filter @agrimate/api run openapi && pnpm --filter @agrimate/api-client run generate"
+  },
+  "devDependencies": { "turbo": "^2.5.0", "typescript": "^5.8.0" }
+}

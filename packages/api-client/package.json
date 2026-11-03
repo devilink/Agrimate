@@ -1,0 +1,16 @@
+{
+  "name": "@agrimate/api-client",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.mjs", "require": "./dist/index.js" } },
+  "scripts": {
+    "generate": "openapi-typescript ../../apps/api/openapi.json -o src/schema.d.ts",
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": { "@agrimate/shared": "workspace:*" },
+  "devDependencies": { "openapi-typescript": "^7.8.0", "tsup": "^8.5.0", "typescript": "^5.8.0" }
+}

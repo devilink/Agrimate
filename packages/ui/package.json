@@ -1,0 +1,12 @@
+{
+  "name": "@agrimate/ui",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/index.tsx",
+  "types": "src/index.tsx",
+  "exports": { ".": "./src/index.tsx" },
+  "scripts": { "typecheck": "tsc --noEmit" },
+  "dependencies": { "@agrimate/shared": "workspace:*" },
+  "peerDependencies": { "react": "^19" },
+  "devDependencies": { "@types/react": "^19.1.0", "react": "^19.1.0", "typescript": "^5.8.0" }
+}
