@@ -1,0 +1,4112 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/rfqs": {
+      "post": {
+        "operationId": "MarketplaceController_createRfq",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRfqDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "marketplace"
+        ]
+      },
+      "get": {
+        "operationId": "MarketplaceController_listRfqs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "marketplace"
+        ]
+      }
+    },
+    "/api/v1/rfqs/{id}/cancel": {
+      "post": {
+        "operationId": "MarketplaceController_cancelRfq",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "marketplace"
+        ]
+      }
+    },
+    "/api/v1/rfqs/{id}/bids": {
+      "post": {
+        "operationId": "MarketplaceController_bid",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBidDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "marketplace"
+        ]
+      },
+      "get": {
+        "operationId": "MarketplaceController_bids",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "marketplace"
+        ]
+      }
+    },
+    "/api/v1/bids/{id}/accept": {
+      "post": {
+        "operationId": "MarketplaceController_accept",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "marketplace"
+        ]
+      }
+    },
+    "/api/v1/listings": {
+      "post": {
+        "operationId": "MarketplaceController_createListing",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateListingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "marketplace"
+        ]
+      },
+      "get": {
+        "operationId": "MarketplaceController_listings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "marketplace"
+        ]
+      }
+    },
+    "/api/v1/listings/{id}/accept": {
+      "post": {
+        "operationId": "MarketplaceController_acceptListing",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptListingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "marketplace"
+        ]
+      }
+    },
+    "/api/v1/listings/{id}/withdraw": {
+      "post": {
+        "operationId": "MarketplaceController_withdraw",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "marketplace"
+        ]
+      }
+    },
+    "/api/v1/market/suggestion": {
+      "get": {
+        "operationId": "MarketplaceController_suggestion",
+        "parameters": [
+          {
+            "name": "commodityId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "marketplace"
+        ]
+      }
+    },
+    "/api/v1/market/prices": {
+      "get": {
+        "operationId": "MarketplaceController_prices",
+        "parameters": [
+          {
+            "name": "commodityId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "market",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "months",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "marketplace"
+        ]
+      }
+    },
+    "/api/v1/market/markets": {
+      "get": {
+        "operationId": "MarketplaceController_markets",
+        "parameters": [
+          {
+            "name": "commodityId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "marketplace"
+        ]
+      }
+    },
+    "/api/v1/orders": {
+      "get": {
+        "operationId": "OrdersController_list",
+        "parameters": [
+          {
+            "name": "state",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}": {
+      "get": {
+        "operationId": "OrdersController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/events": {
+      "get": {
+        "operationId": "OrdersController_events",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/cancel": {
+      "post": {
+        "operationId": "OrdersController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/freight-quote": {
+      "get": {
+        "operationId": "OrdersController_quote",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/logistics/platform": {
+      "post": {
+        "operationId": "OrdersController_book",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/logistics/external": {
+      "post": {
+        "operationId": "OrdersController_external",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExternalLogisticsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/depart": {
+      "post": {
+        "operationId": "OrdersController_depart",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/confirm-delivery": {
+      "post": {
+        "operationId": "OrdersController_confirm",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmDeliveryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/deviation/accept": {
+      "post": {
+        "operationId": "OrdersController_deviation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/dispatch-photos": {
+      "post": {
+        "operationId": "OrdersController_photo",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileRefDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/dispute-eligibility": {
+      "get": {
+        "operationId": "OrdersController_eligibility",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/disputes": {
+      "post": {
+        "operationId": "OrdersController_dispute",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDisputeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/spot-tests": {
+      "post": {
+        "operationId": "OrdersController_spot",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/invoices": {
+      "get": {
+        "operationId": "OrdersController_inv",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/spot-tests/{id}/result": {
+      "post": {
+        "operationId": "QualityController_result",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpotResultDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "quality"
+        ]
+      }
+    },
+    "/api/v1/invoices/{id}/pdf": {
+      "get": {
+        "operationId": "QualityController_pdf",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "quality"
+        ]
+      }
+    },
+    "/api/v1/ledger/me": {
+      "get": {
+        "operationId": "QualityController_ledger",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "quality"
+        ]
+      }
+    },
+    "/api/v1/payouts/me": {
+      "get": {
+        "operationId": "QualityController_payouts",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "quality"
+        ]
+      }
+    },
+    "/api/v1/inspector/jobs": {
+      "get": {
+        "operationId": "InspectionController_jobs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "inspection"
+        ]
+      }
+    },
+    "/api/v1/inspections/{id}/check-in": {
+      "post": {
+        "operationId": "InspectionController_checkIn",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GeoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "inspection"
+        ]
+      }
+    },
+    "/api/v1/inspections/{id}/grading": {
+      "post": {
+        "operationId": "InspectionController_grading",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GradingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "inspection"
+        ]
+      }
+    },
+    "/api/v1/inspections/{id}/mark-inspected": {
+      "post": {
+        "operationId": "InspectionController_mark",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "inspection"
+        ]
+      }
+    },
+    "/api/v1/inspections/{id}/cancel": {
+      "post": {
+        "operationId": "InspectionController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "inspection"
+        ]
+      }
+    },
+    "/api/v1/self-cert/{orderId}/session": {
+      "post": {
+        "operationId": "InspectionController_session",
+        "parameters": [
+          {
+            "name": "orderId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaptureSessionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "inspection"
+        ]
+      }
+    },
+    "/api/v1/self-cert/{orderId}/clips": {
+      "post": {
+        "operationId": "InspectionController_clip",
+        "parameters": [
+          {
+            "name": "orderId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClipDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "inspection"
+        ]
+      }
+    },
+    "/api/v1/self-cert/{orderId}/submit": {
+      "post": {
+        "operationId": "InspectionController_submit",
+        "parameters": [
+          {
+            "name": "orderId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitSelfCertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "inspection"
+        ]
+      }
+    },
+    "/api/v1/trips/available": {
+      "get": {
+        "operationId": "TripsController_available",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "trips"
+        ]
+      }
+    },
+    "/api/v1/trips/mine": {
+      "get": {
+        "operationId": "TripsController_mine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "trips"
+        ]
+      }
+    },
+    "/api/v1/trips/{id}/accept": {
+      "post": {
+        "operationId": "TripsController_accept",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptTripDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "trips"
+        ]
+      }
+    },
+    "/api/v1/trips/{id}/eway-bill": {
+      "post": {
+        "operationId": "TripsController_eway",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EwayBillDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "trips"
+        ]
+      }
+    },
+    "/api/v1/trips/{id}/pickup": {
+      "post": {
+        "operationId": "TripsController_pickup",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "trips"
+        ]
+      }
+    },
+    "/api/v1/trips/{id}/deliver": {
+      "post": {
+        "operationId": "TripsController_deliver",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeliverDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "trips"
+        ]
+      }
+    },
+    "/api/v1/admin/queues": {
+      "get": {
+        "operationId": "AdminController_queues",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/queues/{kind}/{id}/review": {
+      "post": {
+        "operationId": "AdminController_review",
+        "parameters": [
+          {
+            "name": "kind",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/orders": {
+      "get": {
+        "operationId": "AdminController_orderList",
+        "parameters": [
+          {
+            "name": "state",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/orders/{id}": {
+      "get": {
+        "operationId": "AdminController_order",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/orders/{id}/farmer-default": {
+      "post": {
+        "operationId": "AdminController_farmerDefault",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/orders/{id}/buyer-default/refund": {
+      "post": {
+        "operationId": "AdminController_buyerRefund",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/orders/{id}/refund-excess": {
+      "post": {
+        "operationId": "AdminController_refundExcess",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefundExcessDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/orders/{id}/assign-inspector": {
+      "post": {
+        "operationId": "AdminController_assign",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualAssignDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/inspectors": {
+      "get": {
+        "operationId": "AdminController_inspectors",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/disputes": {
+      "get": {
+        "operationId": "AdminController_disputeList",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/disputes/{id}/resolve": {
+      "post": {
+        "operationId": "AdminController_resolve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveDisputeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/payouts": {
+      "get": {
+        "operationId": "AdminController_payouts",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/payouts/{id}/retry": {
+      "post": {
+        "operationId": "AdminController_retry",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/ledger/accounts": {
+      "get": {
+        "operationId": "AdminController_accounts",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/ledger/journals": {
+      "get": {
+        "operationId": "AdminController_journals",
+        "parameters": [
+          {
+            "name": "orderId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/escrow": {
+      "get": {
+        "operationId": "AdminController_escrow",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/audit": {
+      "get": {
+        "operationId": "AdminController_auditLog",
+        "parameters": [
+          {
+            "name": "entity",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entityId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/sla-board": {
+      "get": {
+        "operationId": "AdminController_board",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/alerts/{id}/resolve": {
+      "post": {
+        "operationId": "AdminController_resolveAlert",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/reconciliation": {
+      "get": {
+        "operationId": "AdminController_recon",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/reconciliation/run": {
+      "post": {
+        "operationId": "AdminController_runRecon",
+        "parameters": [
+          {
+            "name": "date",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "HealthController_health",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/metrics": {
+      "get": {
+        "operationId": "HealthController_metrics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/api/v1/dev/mock-bank/orders/{orderId}/credit": {
+      "post": {
+        "operationId": "DevController_credit",
+        "parameters": [
+          {
+            "name": "orderId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MockCreditDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "dev"
+        ]
+      }
+    },
+    "/api/v1/dev/time/advance": {
+      "post": {
+        "operationId": "DevController_advance",
+        "parameters": [
+          {
+            "name": "hours",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "dev"
+        ]
+      }
+    },
+    "/api/v1/auth/otp/request": {
+      "post": {
+        "operationId": "AuthController_request",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestOtpDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/otp/verify": {
+      "post": {
+        "operationId": "AuthController_verify",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyOtpDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refresh",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "operationId": "AuthController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "auth"
+        ]
+      },
+      "patch": {
+        "operationId": "AuthController_updateMe",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/files/upload-url": {
+      "post": {
+        "operationId": "FilesController_upload",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadUrlDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "files"
+        ]
+      }
+    },
+    "/api/v1/files/{id}/parts": {
+      "post": {
+        "operationId": "FilesController_part",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "files"
+        ]
+      }
+    },
+    "/api/v1/files/{id}/multipart-complete": {
+      "post": {
+        "operationId": "FilesController_mpc",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MultipartCompleteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "files"
+        ]
+      }
+    },
+    "/api/v1/files/{id}/complete": {
+      "post": {
+        "operationId": "FilesController_complete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "files"
+        ]
+      }
+    },
+    "/api/v1/files/{id}/download-url": {
+      "get": {
+        "operationId": "FilesController_download",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "files"
+        ]
+      }
+    },
+    "/api/v1/masters/commodities": {
+      "get": {
+        "operationId": "MastersController_commodities",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "masters"
+        ]
+      },
+      "post": {
+        "operationId": "MastersController_addCommodity",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommodityDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "masters"
+        ]
+      }
+    },
+    "/api/v1/masters/vehicle-tiers": {
+      "get": {
+        "operationId": "MastersController_tiers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "masters"
+        ]
+      },
+      "post": {
+        "operationId": "MastersController_addTier",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VehicleTierDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "masters"
+        ]
+      }
+    },
+    "/api/v1/masters/inspection-tiers": {
+      "get": {
+        "operationId": "MastersController_inspectionTiers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "masters"
+        ]
+      },
+      "put": {
+        "operationId": "MastersController_putInspectionTiers",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InspectionTiersDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "masters"
+        ]
+      }
+    },
+    "/api/v1/masters/contract-terms/active": {
+      "get": {
+        "operationId": "MastersController_contract",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "masters"
+        ]
+      }
+    },
+    "/api/v1/masters/pincodes/{pin}": {
+      "get": {
+        "operationId": "MastersController_pin",
+        "parameters": [
+          {
+            "name": "pin",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "masters"
+        ]
+      }
+    },
+    "/api/v1/masters/config": {
+      "get": {
+        "operationId": "MastersController_cfg",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "masters"
+        ]
+      }
+    },
+    "/api/v1/masters/commodities/{id}/grades": {
+      "post": {
+        "operationId": "MastersController_addGrade",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GradeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "masters"
+        ]
+      }
+    },
+    "/api/v1/masters/grades/{id}": {
+      "put": {
+        "operationId": "MastersController_putGrade",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GradeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "masters"
+        ]
+      }
+    },
+    "/api/v1/masters/vehicle-tiers/{id}": {
+      "patch": {
+        "operationId": "MastersController_patchTier",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VehicleRateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "masters"
+        ]
+      }
+    },
+    "/api/v1/masters/config/{key}": {
+      "put": {
+        "operationId": "MastersController_putConfig",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigValueDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "masters"
+        ]
+      }
+    },
+    "/api/v1/masters/contract-terms": {
+      "post": {
+        "operationId": "MastersController_addTerms",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContractTermsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "masters"
+        ]
+      }
+    },
+    "/api/v1/onboarding/buyer/kyb": {
+      "post": {
+        "operationId": "OnboardingController_kyb",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BuyerKybDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "onboarding"
+        ]
+      }
+    },
+    "/api/v1/onboarding/farmer/kyc": {
+      "post": {
+        "operationId": "OnboardingController_kyc",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FarmerKycDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "onboarding"
+        ]
+      }
+    },
+    "/api/v1/onboarding/inspector/degree": {
+      "post": {
+        "operationId": "OnboardingController_degree",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InspectorDegreeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "onboarding"
+        ]
+      }
+    },
+    "/api/v1/onboarding/inspector/availability": {
+      "post": {
+        "operationId": "OnboardingController_avail",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "onboarding"
+        ]
+      }
+    },
+    "/api/v1/onboarding/logistics/profile": {
+      "post": {
+        "operationId": "OnboardingController_logi",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogisticsProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "onboarding"
+        ]
+      }
+    },
+    "/api/v1/onboarding/logistics/vehicles": {
+      "post": {
+        "operationId": "OnboardingController_addV",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VehicleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "onboarding"
+        ]
+      },
+      "get": {
+        "operationId": "OnboardingController_listV",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "onboarding"
+        ]
+      }
+    },
+    "/api/v1/onboarding/organic-certs": {
+      "post": {
+        "operationId": "OnboardingController_addC",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganicCertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "onboarding"
+        ]
+      },
+      "get": {
+        "operationId": "OnboardingController_listC",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "onboarding"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Agrimate API",
+    "description": "All money is integer paise, sent as decimal strings. Times are UTC ISO-8601.",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "CreateRfqDto": {
+        "type": "object",
+        "properties": {
+          "commodityId": {
+            "type": "string"
+          },
+          "gradeId": {
+            "type": "string"
+          },
+          "quantityKg": {
+            "type": "number",
+            "minimum": 100
+          },
+          "deliveryPin": {
+            "type": "string"
+          },
+          "neededBy": {
+            "type": "string"
+          },
+          "targetPricePaisePerKg": {
+            "type": "string",
+            "description": "Integer paise per kg."
+          },
+          "organicRequired": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "commodityId",
+          "gradeId",
+          "quantityKg",
+          "deliveryPin",
+          "neededBy",
+          "targetPricePaisePerKg"
+        ]
+      },
+      "CreateBidDto": {
+        "type": "object",
+        "properties": {
+          "quantityKg": {
+            "type": "number",
+            "minimum": 1
+          },
+          "pricePaisePerKg": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "quantityKg",
+          "pricePaisePerKg"
+        ]
+      },
+      "AcceptDto": {
+        "type": "object",
+        "properties": {
+          "acceptContract": {
+            "type": "boolean",
+            "description": "Must be true: the buyer accepts the active contract terms."
+          }
+        },
+        "required": [
+          "acceptContract"
+        ]
+      },
+      "CreateListingDto": {
+        "type": "object",
+        "properties": {
+          "commodityId": {
+            "type": "string"
+          },
+          "gradeId": {
+            "type": "string"
+          },
+          "quantityKg": {
+            "type": "number",
+            "minimum": 100
+          },
+          "pricePaisePerKg": {
+            "type": "string"
+          },
+          "pickupPin": {
+            "type": "string"
+          },
+          "organicCertId": {
+            "type": "string",
+            "description": "Claiming organic requires naming a verified, unexpired certificate."
+          }
+        },
+        "required": [
+          "commodityId",
+          "gradeId",
+          "quantityKg",
+          "pricePaisePerKg"
+        ]
+      },
+      "AcceptListingDto": {
+        "type": "object",
+        "properties": {
+          "acceptContract": {
+            "type": "boolean",
+            "description": "Must be true: the buyer accepts the active contract terms."
+          },
+          "deliveryPin": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "acceptContract",
+          "deliveryPin"
+        ]
+      },
+      "ReasonDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 3
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "ExternalLogisticsDto": {
+        "type": "object",
+        "properties": {
+          "vehicleNo": {
+            "type": "string",
+            "pattern": "^[A-Z]{2}[0-9]{1,2}[A-Z]{0,3}[0-9]{4}$"
+          },
+          "driverPhone": {
+            "type": "string",
+            "pattern": "^(\\+91)?[6-9][0-9]{9}$"
+          }
+        },
+        "required": [
+          "vehicleNo",
+          "driverPhone"
+        ]
+      },
+      "ConfirmDeliveryDto": {
+        "type": "object",
+        "properties": {
+          "receivedWeightKg": {
+            "type": "number",
+            "minimum": 0
+          },
+          "podPhotoFileId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "receivedWeightKg"
+        ]
+      },
+      "FileRefDto": {
+        "type": "object",
+        "properties": {
+          "fileId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fileId"
+        ]
+      },
+      "CreateDisputeDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "WEIGHT",
+              "QUALITY"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 5
+          },
+          "evidenceFileIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "type",
+          "reason",
+          "evidenceFileIds"
+        ]
+      },
+      "SpotResultDto": {
+        "type": "object",
+        "properties": {
+          "passed": {
+            "type": "boolean"
+          },
+          "reportFileId": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "passed",
+          "reportFileId"
+        ]
+      },
+      "GeoDto": {
+        "type": "object",
+        "properties": {
+          "lat": {
+            "type": "number"
+          },
+          "lng": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "lat",
+          "lng"
+        ]
+      },
+      "GradingDto": {
+        "type": "object",
+        "properties": {
+          "readings": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "scaleWeightKg": {
+            "type": "number",
+            "minimum": 1
+          },
+          "photoFileIds": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "readings",
+          "scaleWeightKg",
+          "photoFileIds"
+        ]
+      },
+      "CaptureSessionDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "SCALE",
+              "VEHICLE"
+            ]
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "ClipDto": {
+        "type": "object",
+        "properties": {
+          "captureToken": {
+            "type": "string"
+          },
+          "fileId": {
+            "type": "string"
+          },
+          "lat": {
+            "type": "number"
+          },
+          "lng": {
+            "type": "number"
+          },
+          "capturedAt": {
+            "type": "string",
+            "description": "Device time corrected by the server offset from the session response."
+          },
+          "durationSec": {
+            "type": "number",
+            "minimum": 1
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "IN_APP_CAMERA"
+            ]
+          }
+        },
+        "required": [
+          "captureToken",
+          "fileId",
+          "lat",
+          "lng",
+          "capturedAt",
+          "durationSec",
+          "source"
+        ]
+      },
+      "SubmitSelfCertDto": {
+        "type": "object",
+        "properties": {
+          "certifiedWeightKg": {
+            "type": "number",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "certifiedWeightKg"
+        ]
+      },
+      "AcceptTripDto": {
+        "type": "object",
+        "properties": {
+          "vehicleId": {
+            "type": "string"
+          },
+          "noCoLoadingAttested": {
+            "type": "boolean",
+            "description": "Must be true for every trip."
+          }
+        },
+        "required": [
+          "vehicleId",
+          "noCoLoadingAttested"
+        ]
+      },
+      "EwayBillDto": {
+        "type": "object",
+        "properties": {
+          "ewayBillNumber": {
+            "type": "string",
+            "minLength": 6
+          },
+          "fileId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ewayBillNumber",
+          "fileId"
+        ]
+      },
+      "DeliverDto": {
+        "type": "object",
+        "properties": {
+          "podPhotoFileId": {
+            "type": "string"
+          },
+          "lat": {
+            "type": "number"
+          },
+          "lng": {
+            "type": "number"
+          },
+          "receivedWeightKg": {
+            "type": "number",
+            "minimum": 0
+          },
+          "receiverOtp": {
+            "type": "string"
+          },
+          "signatureFileId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "podPhotoFileId",
+          "lat",
+          "lng",
+          "receivedWeightKg"
+        ]
+      },
+      "ReviewDto": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "APPROVE",
+              "REJECT"
+            ]
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision"
+        ]
+      },
+      "RefundExcessDto": {
+        "type": "object",
+        "properties": {
+          "amountPaise": {
+            "type": "string"
+          }
+        }
+      },
+      "ManualAssignDto": {
+        "type": "object",
+        "properties": {
+          "inspectorId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "inspectorId"
+        ]
+      },
+      "ResolveDisputeDto": {
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "RELEASE_TO_FARMER",
+              "PARTIAL_REFUND",
+              "FULL_REFUND_FARMER_FAULT"
+            ]
+          },
+          "refundPaise": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string",
+            "minLength": 3
+          }
+        },
+        "required": [
+          "outcome",
+          "note"
+        ]
+      },
+      "MockCreditDto": {
+        "type": "object",
+        "properties": {
+          "amountPaise": {
+            "type": "string",
+            "description": "Rupee-free: integer paise. Omit to pay the next open tranche exactly."
+          },
+          "paymentId": {
+            "type": "string"
+          }
+        }
+      },
+      "RequestOtpDto": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "phone"
+        ]
+      },
+      "VerifyOtpDto": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 6
+          },
+          "role": {
+            "type": "string",
+            "description": "Required only the first time a phone signs up. ADMIN accounts cannot self-register.",
+            "enum": [
+              "BUYER",
+              "FARMER",
+              "INSPECTOR",
+              "LOGISTICS"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 2
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "en",
+              "hi",
+              "as",
+              "bn"
+            ]
+          }
+        },
+        "required": [
+          "phone",
+          "code"
+        ]
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "RefreshDto": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "refreshToken"
+        ]
+      },
+      "UpdateMeDto": {
+        "type": "object",
+        "properties": {
+          "language": {
+            "type": "string",
+            "enum": [
+              "en",
+              "hi",
+              "as",
+              "bn"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 2
+          }
+        }
+      },
+      "UploadUrlDto": {
+        "type": "object",
+        "properties": {
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "KYC_DOC",
+              "DEGREE_CERT",
+              "RC",
+              "DRIVING_LICENCE",
+              "FITNESS_CERT",
+              "ORGANIC_CERT",
+              "DISPATCH_PHOTO",
+              "INSPECTION_PHOTO",
+              "SELF_CERT_VIDEO",
+              "EWAY_BILL",
+              "POD_PHOTO",
+              "POD_SIGNATURE",
+              "DISPUTE_EVIDENCE",
+              "SPOT_TEST_REPORT"
+            ]
+          },
+          "sha256": {
+            "type": "string",
+            "description": "Hex SHA-256 computed on the device before upload.",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "number",
+            "minimum": 1
+          },
+          "orderId": {
+            "type": "string"
+          },
+          "captureToken": {
+            "type": "string",
+            "description": "Mandatory for SELF_CERT_VIDEO. Issued only by the in-app recorder flow, so gallery files have no way in."
+          },
+          "multipart": {
+            "type": "boolean",
+            "description": "Use a resumable multipart upload (recommended for video on poor networks)."
+          }
+        },
+        "required": [
+          "purpose",
+          "sha256",
+          "contentType"
+        ]
+      },
+      "PartDto": {
+        "type": "object",
+        "properties": {
+          "partNumber": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 10000
+          }
+        },
+        "required": [
+          "partNumber"
+        ]
+      },
+      "CompletedPart": {
+        "type": "object",
+        "properties": {
+          "partNumber": {
+            "type": "number",
+            "minimum": 1
+          },
+          "etag": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "partNumber",
+          "etag"
+        ]
+      },
+      "MultipartCompleteDto": {
+        "type": "object",
+        "properties": {
+          "parts": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompletedPart"
+            }
+          }
+        },
+        "required": [
+          "parts"
+        ]
+      },
+      "CommodityDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Z_]+$"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name"
+        ]
+      },
+      "GradeParameterDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-z][a-zA-Z0-9_]*$"
+          },
+          "label": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "min": {
+            "type": "number"
+          },
+          "max": {
+            "type": "number"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "unit",
+          "required"
+        ]
+      },
+      "GradeDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Z0-9_]+$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "parameters": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GradeParameterDto"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "parameters"
+        ]
+      },
+      "VehicleTierDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Z0-9_]+$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "minKg": {
+            "type": "number",
+            "minimum": 0
+          },
+          "maxKg": {
+            "type": "number",
+            "minimum": 1
+          },
+          "ratePaisePerKm": {
+            "type": "string",
+            "description": "Paise per km, as an integer string.",
+            "pattern": "^\\d+$"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "minKg",
+          "maxKg",
+          "ratePaisePerKm"
+        ]
+      },
+      "VehicleRateDto": {
+        "type": "object",
+        "properties": {
+          "ratePaisePerKm": {
+            "type": "string",
+            "pattern": "^\\d+$"
+          }
+        },
+        "required": [
+          "ratePaisePerKm"
+        ]
+      },
+      "InspectionTierDto": {
+        "type": "object",
+        "properties": {
+          "maxKgInclusive": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 1
+          },
+          "feePaise": {
+            "type": "string",
+            "pattern": "^\\d+$"
+          }
+        },
+        "required": [
+          "feePaise"
+        ]
+      },
+      "InspectionTiersDto": {
+        "type": "object",
+        "properties": {
+          "tiers": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InspectionTierDto"
+            }
+          }
+        },
+        "required": [
+          "tiers"
+        ]
+      },
+      "ConfigValueDto": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "value"
+        ]
+      },
+      "ContractTermsDto": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string",
+            "minLength": 50
+          }
+        },
+        "required": [
+          "version",
+          "body"
+        ]
+      },
+      "BuyerKybDto": {
+        "type": "object",
+        "properties": {
+          "companyName": {
+            "type": "string",
+            "minLength": 2
+          },
+          "gstin": {
+            "type": "string"
+          },
+          "pan": {
+            "type": "string"
+          },
+          "defaultPin": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "companyName",
+          "gstin",
+          "pan"
+        ]
+      },
+      "FarmerKycDto": {
+        "type": "object",
+        "properties": {
+          "pan": {
+            "type": "string"
+          },
+          "panName": {
+            "type": "string",
+            "minLength": 2
+          },
+          "bankAccount": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 20
+          },
+          "ifsc": {
+            "type": "string"
+          },
+          "bankHolderName": {
+            "type": "string",
+            "minLength": 2
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "INDIVIDUAL",
+              "FPO"
+            ]
+          },
+          "fpoName": {
+            "type": "string"
+          },
+          "pin": {
+            "type": "string"
+          },
+          "lat": {
+            "type": "number"
+          },
+          "lng": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "pan",
+          "panName",
+          "bankAccount",
+          "ifsc",
+          "bankHolderName",
+          "pin"
+        ]
+      },
+      "InspectorDegreeDto": {
+        "type": "object",
+        "properties": {
+          "degreeType": {
+            "type": "string",
+            "enum": [
+              "BSC_AGRICULTURE",
+              "MSC_AGRICULTURE",
+              "BSC_ANIMAL_HUSBANDRY",
+              "MSC_ANIMAL_HUSBANDRY",
+              "VETERINARY"
+            ]
+          },
+          "degreeFileId": {
+            "type": "string"
+          },
+          "pin": {
+            "type": "string"
+          },
+          "lat": {
+            "type": "number"
+          },
+          "lng": {
+            "type": "number"
+          },
+          "serviceRadiusKm": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 500
+          },
+          "bankAccount": {
+            "type": "string"
+          },
+          "ifsc": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "degreeType",
+          "degreeFileId",
+          "pin"
+        ]
+      },
+      "AvailabilityDto": {
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "serviceRadiusKm": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 500
+          },
+          "lat": {
+            "type": "number"
+          },
+          "lng": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "available"
+        ]
+      },
+      "LogisticsProfileDto": {
+        "type": "object",
+        "properties": {
+          "partnerType": {
+            "type": "string",
+            "enum": [
+              "INDIVIDUAL",
+              "AGENCY"
+            ]
+          },
+          "companyName": {
+            "type": "string"
+          },
+          "gstin": {
+            "type": "string"
+          },
+          "rcFileId": {
+            "type": "string"
+          },
+          "dlFileId": {
+            "type": "string"
+          },
+          "fitnessFileId": {
+            "type": "string"
+          },
+          "noCoLoadingAccepted": {
+            "type": "boolean",
+            "description": "Must be true: strict ban on carrying other commercial goods with agricultural produce."
+          },
+          "bankAccount": {
+            "type": "string"
+          },
+          "ifsc": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "partnerType",
+          "rcFileId",
+          "dlFileId",
+          "fitnessFileId",
+          "noCoLoadingAccepted"
+        ]
+      },
+      "VehicleDto": {
+        "type": "object",
+        "properties": {
+          "regNo": {
+            "type": "string",
+            "pattern": "^[A-Z]{2}[0-9]{1,2}[A-Z]{0,3}[0-9]{4}$"
+          },
+          "capacityKg": {
+            "type": "number",
+            "minimum": 100
+          }
+        },
+        "required": [
+          "regNo",
+          "capacityKg"
+        ]
+      },
+      "OrganicCertDto": {
+        "type": "object",
+        "properties": {
+          "fileId": {
+            "type": "string"
+          },
+          "certifier": {
+            "type": "string",
+            "minLength": 2
+          },
+          "certNumber": {
+            "type": "string",
+            "minLength": 2
+          },
+          "expiresAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fileId",
+          "certifier",
+          "certNumber",
+          "expiresAt"
+        ]
+      }
+    }
+  }
+}
