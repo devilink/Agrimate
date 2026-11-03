@@ -1,0 +1,25 @@
+# Shared image for the three Next.js portals. Build with --build-arg APP=web-buyer|web-admin|pwa-farmer and PORT.
+FROM node:22-slim AS build
+RUN npm install -g pnpm@11.15.0
+WORKDIR /repo
+ARG APP
+ARG NEXT_PUBLIC_API_URL=http://localhost:4000
+ARG NEXT_PUBLIC_MOCK_TOOLS=true
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL NEXT_PUBLIC_MOCK_TOOLS=$NEXT_PUBLIC_MOCK_TOOLS NEXT_TELEMETRY_DISABLED=1
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json tsconfig.base.json ./
+COPY packages packages
+COPY apps/$APP apps/$APP
+RUN mkdir -p apps/$APP/public
+RUN pnpm install --frozen-lockfile --filter "@agrimate/$APP..." --filter agrimate
+RUN pnpm --filter @agrimate/shared build && pnpm --filter @agrimate/api-client build && pnpm --filter "@agrimate/$APP" build
+
+FROM node:22-slim AS runtime
+ARG APP
+ARG PORT=3000
+ENV NODE_ENV=production PORT=$PORT HOSTNAME=0.0.0.0 NEXT_TELEMETRY_DISABLED=1 APP=$APP
+WORKDIR /srv
+COPY --from=build /repo/apps/$APP/.next/standalone ./
+COPY --from=build /repo/apps/$APP/.next/static ./apps/$APP/.next/static
+COPY --from=build /repo/apps/$APP/public ./apps/$APP/public
+EXPOSE $PORT
+CMD ["sh", "-c", "node apps/$APP/server.js"]

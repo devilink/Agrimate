@@ -1,0 +1,10 @@
+**/node_modules
+**/dist
+**/.next
+**/.expo
+**/.turbo
+.git
+**/.env
+**/.env.local
+apps/app-inspector
+apps/app-logistics

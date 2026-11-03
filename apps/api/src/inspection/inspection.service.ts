@@ -180,6 +180,8 @@ export class InspectionService implements OnModuleInit {
     for (const f of d.photoFileIds) await this.files.requireCompleted(this.prisma, u.id, f, ['INSPECTION_PHOTO']);
     const check = checkReadings(i.order.grade.parameters as unknown as GradeParameter[], d.readings);
     if (check.missing.length || check.invalid.length) throw new UnprocessableEntityException({ code: 'GRADING_INCOMPLETE', message: 'Grading form is incomplete', ...check });
+    // Linking the photos to the order is what lets the buyer open them from the inspection report.
+    await this.prisma.fileObject.updateMany({ where: { id: { in: d.photoFileIds } }, data: { orderId: i.orderId } });
     return this.prisma.inspection.update({ where: { id }, data: { readings: d.readings, scaleWeightKg: d.scaleWeightKg, photoFileIds: d.photoFileIds, gradeCheck: check as unknown as Prisma.InputJsonValue } });
   }
 

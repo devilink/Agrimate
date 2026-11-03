@@ -109,6 +109,7 @@ export const CONFIG_DEFAULTS = {
   commissionBps: 300,
   freightMarkupBps: 800,
   loadingFeePaise: '100000',
+  advanceExpiryHours: 48,
   rfqSlaDays: 3,
   catalogSlaDays: 2,
   slaEndOfDay: true,

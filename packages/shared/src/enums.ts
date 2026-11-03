@@ -66,7 +66,7 @@ export type PayeeType = ValueOf<typeof PayeeType>;
 export const InvoiceType = e('BUYER_INVOICE', 'FARMER_STATEMENT', 'LOGISTICS_PAYOUT');
 export type InvoiceType = ValueOf<typeof InvoiceType>;
 export const SlaTimerKind = e(
-  'REMINDER_T24', 'REMINDER_T6', 'REMINDER_T1', 'SLA_BREACH', 'INSPECTOR_RETRY', 'SELF_CERT_FALLBACK', 'DISPUTE_WINDOW_END',
+  'REMINDER_T24', 'REMINDER_T6', 'REMINDER_T1', 'SLA_BREACH', 'INSPECTOR_RETRY', 'SELF_CERT_FALLBACK', 'DISPUTE_WINDOW_END', 'ADVANCE_EXPIRY',
 );
 export type SlaTimerKind = ValueOf<typeof SlaTimerKind>;
 export const AlertKind = e(

@@ -192,6 +192,7 @@ enum SlaTimerKind {
   INSPECTOR_RETRY
   SELF_CERT_FALLBACK
   DISPUTE_WINDOW_END
+  ADVANCE_EXPIRY
 }
 
 enum TimerStatus {

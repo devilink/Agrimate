@@ -10,11 +10,14 @@ import { NotificationsService } from '../engine/engine';
 import { AvailabilityDto, BuyerKybDto, CommodityDto, ConfigValueDto, ContractTermsDto, FarmerKycDto, GradeDto, InspectionTiersDto, InspectorDegreeDto, LogisticsProfileDto, MultipartCompleteDto, OrganicCertDto, PartDto, UploadUrlDto, VehicleDto, VehicleRateDto, VehicleTierDto } from './onboarding.dto';
 
 // ---- Files ---------------------------------------------------------------------------------------------------------
+const MAX_FILE_BYTES = 1024 * 1024 * 1024;
+
 @Injectable()
 export class FilesService {
   constructor(private readonly prisma: PrismaService, private readonly clock: Clock, private readonly crypto: CryptoService, @Inject(STORAGE) private readonly storage: StorageAdapter) {}
 
   async createUpload(user: AuthUser, dto: UploadUrlDto) {
+    if (!/^(image\/|video\/|application\/pdf$)/.test(dto.contentType)) throw new UnprocessableEntityException({ code: 'FILE_TYPE_NOT_ALLOWED', message: 'Only images, videos and PDFs can be uploaded' });
     let captureSessionId: string | undefined;
     if (dto.purpose === 'SELF_CERT_VIDEO') {
       // There is deliberately no other way to create a self-cert file: no token, no upload.
@@ -47,6 +50,7 @@ export class FilesService {
     const f = await this.own(user, id);
     const stored = await this.storage.hashObject(f.key);
     if (!stored) throw new ConflictException({ code: 'FILE_NOT_UPLOADED', message: 'File bytes have not arrived yet' });
+    if (stored.size > MAX_FILE_BYTES) throw new UnprocessableEntityException({ code: 'FILE_TOO_LARGE', message: 'File is larger than the 1 GB limit' });
     if (stored.sha256 !== f.sha256Declared) throw new UnprocessableEntityException({ code: 'HASH_MISMATCH', message: 'File hash does not match what the device declared' });
     const u = await this.prisma.fileObject.update({ where: { id }, data: { sha256Server: stored.sha256, sizeBytes: stored.size, completedAt: this.clock.now() } });
     return { fileId: u.id, sha256: u.sha256Server, completedAt: u.completedAt };

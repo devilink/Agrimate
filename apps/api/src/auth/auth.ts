@@ -68,12 +68,11 @@ export class AuthService {
       await this.prisma.otpChallenge.update({ where: { id: ch.id }, data: { attempts: { increment: 1 } } });
       throw new UnauthorizedException({ code: 'OTP_INVALID', message: 'Code is invalid or has expired' });
     }
-    await this.prisma.otpChallenge.update({ where: { id: ch.id }, data: { consumedAt: now } });
     let user = await this.prisma.user.findUnique({ where: { phoneHash } });
-    if (!user) {
-      if (!dto.role || !dto.name) throw new BadRequestException({ code: 'SIGNUP_DETAILS_REQUIRED', message: 'New number: role and name are required' });
-      user = await this.createUser({ phone, role: dto.role, name: dto.name, language: dto.language });
-    }
+    // Checked before spending the code, so the signup form can resend it along with the missing details.
+    if (!user && (!dto.role || !dto.name)) throw new BadRequestException({ code: 'SIGNUP_DETAILS_REQUIRED', message: 'New number: role and name are required' });
+    await this.prisma.otpChallenge.update({ where: { id: ch.id }, data: { consumedAt: now } });
+    if (!user) user = await this.createUser({ phone, role: dto.role!, name: dto.name!, language: dto.language });
     if (!user.active) throw new ForbiddenException('Account disabled');
     return this.issueTokens(user);
   }

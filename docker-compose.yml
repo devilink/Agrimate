@@ -1,0 +1,45 @@
+# `docker compose up` runs the whole platform with zero API keys: every provider defaults to its mock.
+# Expo apps run on the host; see README.
+name: agrimate
+include:
+  - infra/docker-compose.yml
+
+services:
+  api:
+    build: { context: ., dockerfile: infra/Dockerfile.api }
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      minio: { condition: service_started }
+    environment:
+      DATABASE_URL: postgresql://agrimate:agrimate@postgres:5432/agrimate
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
+      # Signed URLs are opened by the browser on the host, so they must carry a host it can reach.
+      S3_PUBLIC_ENDPOINT: http://localhost:9000
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-mock}
+      MAPS_PROVIDER: ${MAPS_PROVIDER:-mock}
+      SMS_PROVIDER: ${SMS_PROVIDER:-mock}
+      KYC_PROVIDER: ${KYC_PROVIDER:-mock}
+      MARKET_DATA_PROVIDER: ${MARKET_DATA_PROVIDER:-mock}
+    ports: ['4000:4000']
+    healthcheck:
+      test: ['CMD', 'node', '-e', "fetch('http://localhost:4000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  web-buyer:
+    build: { context: ., dockerfile: infra/Dockerfile.web, args: { APP: web-buyer, PORT: 3000 } }
+    depends_on: { api: { condition: service_healthy } }
+    ports: ['3000:3000']
+
+  web-admin:
+    build: { context: ., dockerfile: infra/Dockerfile.web, args: { APP: web-admin, PORT: 3001 } }
+    depends_on: { api: { condition: service_healthy } }
+    ports: ['3001:3001']
+
+  pwa-farmer:
+    build: { context: ., dockerfile: infra/Dockerfile.web, args: { APP: pwa-farmer, PORT: 3002 } }
+    depends_on: { api: { condition: service_healthy } }
+    ports: ['3002:3002']

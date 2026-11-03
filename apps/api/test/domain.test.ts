@@ -231,6 +231,56 @@ describe('SLA engine', () => {
   });
 });
 
+describe('abandoned matches', () => {
+  it('an unpaid catalog order expires and the listing goes back on sale', async () => {
+    const [b1, b2, farmer] = [await h.buyer(), await h.buyer(), await h.farmer()];
+    const o = await h.catalogOrder(b1, farmer);
+    const row = await h.prisma.order.findUniqueOrThrow({ where: { id: o.id } });
+    const listingId = row.listingId!;
+    await h.advanceHours(47);
+    expect(await h.state(o.id)).toBe('AWAITING_ADVANCE');
+    await h.advanceHours(2);
+    expect(await h.state(o.id)).toBe('CANCELLED');
+    expect((await h.prisma.listing.findUniqueOrThrow({ where: { id: listingId } })).state).toBe('LISTED');
+    expect((await h.api(b2).post(`/listings/${listingId}/accept`, { acceptContract: true, deliveryPin: GUWAHATI_PIN })).status).toBe(200);
+    // Cancelled means the numbers lock again.
+    expect((await h.api(b1).get(`/orders/${o.id}`)).body.farmer.phoneUnlocked).toBe(false);
+  });
+  it('an RFQ reopens with its bids when the buyer cancels before paying', async () => {
+    const [buyer, f1, f2] = [await h.buyer(), await h.farmer(), await h.farmer('Second')];
+    const rfq = await h.api(buyer).post('/rfqs', { commodityId: h.commodityId, gradeId: h.gradeId, quantityKg: 5_000, deliveryPin: GUWAHATI_PIN, neededBy: new Date().toISOString(), targetPricePaisePerKg: '5000' });
+    const b1 = await h.api(f1).post(`/rfqs/${rfq.body.id}/bids`, { quantityKg: 5_000, pricePaisePerKg: '4800' });
+    const b2 = await h.api(f2).post(`/rfqs/${rfq.body.id}/bids`, { quantityKg: 5_000, pricePaisePerKg: '4900' });
+    const o = await h.api(buyer).post(`/bids/${b1.body.id}/accept`, { acceptContract: true });
+    expect((await h.api(buyer).post(`/orders/${o.body.id}/cancel`, { reason: 'Changed plans' })).status).toBe(200);
+    expect((await h.prisma.rfq.findUniqueOrThrow({ where: { id: rfq.body.id } })).state).toBe('BIDDING');
+    expect((await h.api(buyer).post(`/bids/${b2.body.id}/accept`, { acceptContract: true })).status).toBe(200);
+  });
+  it('a part-paid order neither expires nor can be cancelled away from its money', async () => {
+    const [buyer, farmer] = [await h.buyer(), await h.farmer()];
+    const o = await h.catalogOrder(buyer, farmer);
+    await h.credit(buyer, o.id, rupees(1_000));
+    expect((await h.api(buyer).post(`/orders/${o.id}/cancel`, { reason: 'Changed plans' })).body.code).toBe('ESCROW_NOT_EMPTY');
+    await h.advanceHours(49);
+    expect(await h.state(o.id)).toBe('AWAITING_ADVANCE');
+    expect(await h.prisma.adminAlert.count({ where: { kind: 'UNDERPAYMENT', orderId: o.id } })).toBe(2);
+  });
+});
+
+describe('error mapping', () => {
+  it('a duplicate vehicle registration is a 409, not a 500', async () => {
+    const p = await h.partner();
+    const v = await h.prisma.vehicle.findFirstOrThrow({ where: { partnerId: p.id } });
+    expect((await h.api(p).post('/onboarding/logistics/vehicles', { regNo: v.regNo, capacityKg: 5000 })).status).toBe(409);
+  });
+  it('only image, video and PDF uploads are accepted', async () => {
+    const f = await h.farmer();
+    const r = await h.api(f).post('/files/upload-url', { purpose: 'DISPATCH_PHOTO', sha256: 'c'.repeat(64), contentType: 'application/x-msdownload' });
+    expect(r.status).toBe(422);
+    expect(r.body.code).toBe('FILE_TYPE_NOT_ALLOWED');
+  });
+});
+
 describe('disputes', () => {
   it('holds settlement, then a release pays out as normal', async () => {
     const [buyer, farmer, inspector, admin] = [await h.buyer(), await h.farmer(), await h.inspector(), await h.admin()];
@@ -315,14 +365,13 @@ describe('auth & security', () => {
     expect(r.body.devOtp).toMatch(/^\d{6}$/);
     const wrong = r.body.devOtp === '000000' ? '000001' : '000000';
     expect((await h.api(null).post('/auth/otp/verify', { phone, code: wrong })).status).toBe(401);
-    // A new number must say who it is; the code stays spent, so ask for another one.
+    // A new number must say who it is, and the same code still works once it does.
     expect((await h.api(null).post('/auth/otp/verify', { phone, code: r.body.devOtp })).body.code).toBe('SIGNUP_DETAILS_REQUIRED');
-    const r2 = await h.api(null).post('/auth/otp/request', { phone });
-    const v = await h.api(null).post('/auth/otp/verify', { phone, code: r2.body.devOtp, role: 'FARMER', name: 'New Farmer' });
+    const v = await h.api(null).post('/auth/otp/verify', { phone, code: r.body.devOtp, role: 'FARMER', name: 'New Farmer' });
     expect(v.status).toBe(200);
     expect(v.body.user.role).toBe('FARMER');
     expect((await h.api({ token: v.body.accessToken } as never).get('/auth/me')).body.phone).toBe(`+91${phone}`);
-    expect((await h.api(null).post('/auth/otp/verify', { phone, code: r2.body.devOtp })).status).toBe(401); // Single use.
+    expect((await h.api(null).post('/auth/otp/verify', { phone, code: r.body.devOtp })).status).toBe(401); // Single use.
   });
   it('nobody can self-register as admin', async () => {
     const phone = '9812345679';
@@ -391,6 +440,20 @@ describe('auth & security', () => {
     expect((await h.api(a).post(`/files/${r.body.fileId}/complete`)).body.code).toBe('FILE_NOT_UPLOADED');
     h.storage.put(r.body.key, Buffer.from('not what was declared'));
     expect((await h.api(a).post(`/files/${r.body.fileId}/complete`)).body.code).toBe('HASH_MISMATCH');
+  });
+  it('evidence is readable by the parties to the order and nobody else', async () => {
+    const [buyer, farmer, inspector, other] = [await h.buyer(), await h.farmer(), await h.inspector(), await h.buyer()];
+    const o = await h.rfqOrder(buyer, farmer);
+    await h.fundExternal(buyer, o.id);
+    await h.inspect(inspector, o.id);
+    const { photoFileIds } = await h.prisma.inspection.findUniqueOrThrow({ where: { orderId: o.id } });
+    expect((await h.api(buyer).get(`/files/${photoFileIds[0]}/download-url`)).status).toBe(200);
+    expect((await h.api(farmer).get(`/files/${photoFileIds[0]}/download-url`)).status).toBe(200);
+    expect((await h.api(other).get(`/files/${photoFileIds[0]}/download-url`)).status).toBe(403);
+    const dispatch = await h.upload(farmer, 'DISPATCH_PHOTO');
+    expect((await h.api(farmer).post(`/orders/${o.id}/dispatch-photos`, { fileId: dispatch })).status).toBe(201);
+    expect((await h.api(buyer).get(`/files/${dispatch}/download-url`)).status).toBe(200);
+    expect((await h.api(other).get(`/files/${dispatch}/download-url`)).status).toBe(403);
   });
   it('admin config changes are audited', async () => {
     const admin = await h.admin();

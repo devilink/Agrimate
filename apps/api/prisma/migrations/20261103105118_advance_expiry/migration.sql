@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "SlaTimerKind" ADD VALUE 'ADVANCE_EXPIRY';

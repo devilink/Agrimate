@@ -96,7 +96,7 @@ export class Harness {
   async upload(a: Actor, purpose: string, extra: { captureToken?: string; orderId?: string } = {}) {
     const bytes = randomBytes(64);
     const sha256 = createHash('sha256').update(bytes).digest('hex');
-    const r = await this.api(a).post('/files/upload-url', { purpose, sha256, contentType: 'application/octet-stream', ...extra });
+    const r = await this.api(a).post('/files/upload-url', { purpose, sha256, contentType: 'image/jpeg', ...extra });
     if (r.status !== 201) throw new Error(`upload-url ${r.status}: ${JSON.stringify(r.body)}`);
     this.storage.put(r.body.key, bytes);
     const c = await this.api(a).post(`/files/${r.body.fileId}/complete`);

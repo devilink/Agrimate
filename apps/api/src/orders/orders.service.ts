@@ -1,10 +1,10 @@
 /** Order creation at MATCHED, ownership checks, role-scoped views (phones masked until unlocked), RFQ and catalog flows. */
-import { ConflictException, ForbiddenException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException, OnModuleInit, UnprocessableEntityException } from '@nestjs/common';
 import { FarmerProfile, Prisma } from '@prisma/client';
 import { computeSettlement, gmvPaise, inspectionFee, maskPhone, phonesUnlocked, splitTranches, OrderState, BidPriceRule } from '@agrimate/shared';
 import { AuthUser } from '../auth/auth';
 import { Clock, ConfigService, CryptoService, PrismaService, Tx } from '../core/core';
-import { LedgerService, NotificationsService, OrderEngine } from '../engine/engine';
+import { AlertsService, LedgerService, NotificationsService, OrderEngine, SYSTEM_ACTOR, TimerService } from '../engine/engine';
 import { AcceptListingDto, CreateBidDto, CreateListingDto, CreateRfqDto } from './orders.dto';
 
 const ORDER_INCLUDE = {
@@ -17,8 +17,29 @@ const code = (prefix: string, id: string) => `${prefix}-${id.slice(-8).toUpperCa
 const newCode = (prefix: string, c: CryptoService) => code(prefix, c.randomToken(9).replace(/[-_]/g, 'X'));
 
 @Injectable()
-export class OrdersService {
-  constructor(private readonly prisma: PrismaService, private readonly crypto: CryptoService, private readonly clock: Clock, private readonly config: ConfigService, private readonly engine: OrderEngine, private readonly ledger: LedgerService, private readonly notifications: NotificationsService) {}
+export class OrdersService implements OnModuleInit {
+  constructor(private readonly prisma: PrismaService, private readonly crypto: CryptoService, private readonly clock: Clock, private readonly config: ConfigService, private readonly engine: OrderEngine, private readonly ledger: LedgerService, private readonly notifications: NotificationsService, private readonly timers: TimerService, private readonly alerts: AlertsService) {}
+
+  onModuleInit() {
+    this.engine.register('RELEASE_MATCH', ({ tx, order }) => this.releaseMatch(tx, order.id));
+    this.timers.onFire('ADVANCE_EXPIRY', async (tx, o) => {
+      if (o.state !== 'AWAITING_ADVANCE') return;
+      // Part-paid means the buyer is trying, and there is money to look after: a person decides.
+      if ((await this.ledger.escrowBalance(o.id, tx)) > 0n) { await this.alerts.raise(tx, 'UNDERPAYMENT', `Order ${o.code}: advance still incomplete after the payment window`, o.id); return; }
+      await this.engine.transition(tx, o.id, 'CANCELLED', SYSTEM_ACTOR, { reason: 'Advance not received in time' });
+    });
+  }
+
+  /** An order that dies before its advance must not hold the farmer's produce hostage: the listing or RFQ goes back on the market. */
+  private async releaseMatch(tx: Tx, orderId: string) {
+    const o = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
+    if (o.listingId) await tx.listing.update({ where: { id: o.listingId }, data: { state: 'LISTED' } });
+    if (o.rfqId) {
+      await tx.rfq.update({ where: { id: o.rfqId }, data: { state: 'BIDDING' } });
+      await tx.bid.updateMany({ where: { rfqId: o.rfqId }, data: { state: 'SUBMITTED' } });
+    }
+    await tx.order.update({ where: { id: orderId }, data: { listingId: null, rfqId: null } });
+  }
 
   // ---- Access --------------------------------------------------------------------------------------------------
   async getFull(id: string) {
@@ -116,6 +137,7 @@ export class OrdersService {
       },
     });
     await tx.orderEvent.create({ data: { orderId: order.id, actorId: i.actorId, actorRole: 'BUYER', from: null, to: 'MATCHED', payload: { contractVersion: terms.version, flow: i.flow } } });
+    await this.timers.schedule(tx, order.id, 'ADVANCE_EXPIRY', new Date(this.clock.now().getTime() + (await this.config.get('advanceExpiryHours', tx)) * 3_600_000));
     return this.engine.advance(tx, order.id);
   }
 
@@ -269,7 +291,11 @@ export class OrdersService {
   async cancelOrder(u: AuthUser, id: string, reason: string) {
     const o = await this.prisma.order.findUnique({ where: { id } });
     if (!o || (u.role !== 'ADMIN' && o.buyerId !== u.id)) throw new NotFoundException('Order not found');
-    await this.prisma.tx((tx) => this.engine.transition(tx, id, 'CANCELLED', { id: u.id, role: u.role }, { reason }));
+    await this.prisma.tx(async (tx) => {
+      await this.engine.lock(tx, id);
+      if ((await this.ledger.escrowBalance(id, tx)) > 0n) throw new ConflictException({ code: 'ESCROW_NOT_EMPTY', message: 'Money has arrived for this order; contact support to refund it before cancelling' });
+      await this.engine.transition(tx, id, 'CANCELLED', { id: u.id, role: u.role }, { reason });
+    });
     return this.view(u, id);
   }
 
@@ -278,6 +304,7 @@ export class OrdersService {
     if (!o || o.farmerId !== u.id) throw new NotFoundException('Order not found');
     const f = await this.prisma.fileObject.findUnique({ where: { id: fileId } });
     if (!f || f.ownerId !== u.id || f.purpose !== 'DISPATCH_PHOTO' || !f.completedAt) throw new UnprocessableEntityException({ code: 'FILE_INVALID', message: 'Upload a dispatch photo first' });
+    await this.prisma.fileObject.update({ where: { id: fileId }, data: { orderId } });
     return this.prisma.dispatchPhoto.create({ data: { orderId, fileId } });
   }
 

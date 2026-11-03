@@ -1,7 +1,7 @@
 /** HTTP surface for the transaction domains. Controllers stay thin: authorise by role, delegate to services. */
 import { Body, Controller, Get, Headers, HttpCode, Param, Post, Query, Req, Res } from '@nestjs/common';
 import { ApiBearerAuth, ApiExcludeEndpoint, ApiTags } from '@nestjs/swagger';
-import { SkipThrottle } from '@nestjs/throttler';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { AuthUser, CurrentUser, Public, Roles } from '../auth/auth';
 import { InspectionService } from '../inspection/inspection.service';
@@ -21,14 +21,14 @@ export class MarketplaceController {
     const s = await this.market.suggestion(d.commodityId);
     return this.orders.createRfq(u, d, s.averagePaisePerKg);
   }
-  @Get('rfqs') listRfqs(@CurrentUser() u: AuthUser) { return this.orders.listRfqs(u); }
+  @Roles('BUYER', 'FARMER', 'ADMIN') @Get('rfqs') listRfqs(@CurrentUser() u: AuthUser) { return this.orders.listRfqs(u); }
   @Roles('BUYER') @HttpCode(200) @Post('rfqs/:id/cancel') cancelRfq(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.orders.cancelRfq(u, id); }
   @Roles('FARMER') @Post('rfqs/:id/bids') bid(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() d: CreateBidDto) { return this.orders.submitBid(u, id, d); }
   @Roles('BUYER', 'ADMIN') @Get('rfqs/:id/bids') bids(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.orders.listBids(u, id); }
   @Roles('BUYER') @HttpCode(200) @Post('bids/:id/accept') accept(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() d: AcceptDto) { return this.orders.acceptBid(u, id, d.acceptContract); }
 
   @Roles('FARMER') @Post('listings') createListing(@CurrentUser() u: AuthUser, @Body() d: CreateListingDto) { return this.orders.createListing(u, d); }
-  @Get('listings') listings(@CurrentUser() u: AuthUser, @Query() q: Record<string, string>) { return this.orders.browseListings(u, q); }
+  @Roles('BUYER', 'FARMER', 'ADMIN') @Get('listings') listings(@CurrentUser() u: AuthUser, @Query() q: Record<string, string>) { return this.orders.browseListings(u, q); }
   @Roles('BUYER') @HttpCode(200) @Post('listings/:id/accept') acceptListing(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() d: AcceptListingDto) { return this.orders.acceptListing(u, id, d); }
   @Roles('FARMER') @HttpCode(200) @Post('listings/:id/withdraw') withdraw(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.orders.withdrawListing(u, id); }
 
@@ -100,7 +100,7 @@ export class TripsController {
   @HttpCode(200) @Post(':id/accept') accept(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() d: AcceptTripDto) { return this.s.accept(u, id, d); }
   @HttpCode(200) @Post(':id/eway-bill') eway(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() d: EwayBillDto) { return this.s.uploadEway(u, id, d); }
   @HttpCode(200) @Post(':id/pickup') pickup(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.s.pickup(u, id); }
-  @HttpCode(200) @Post(':id/deliver') deliver(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() d: DeliverDto) { return this.s.deliver(u, id, d); }
+  @Throttle({ default: { limit: 10, ttl: 60_000 } }) @HttpCode(200) @Post(':id/deliver') deliver(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() d: DeliverDto) { return this.s.deliver(u, id, d); }
 }
 
 @ApiTags('webhooks') @SkipThrottle() @Controller('webhooks')

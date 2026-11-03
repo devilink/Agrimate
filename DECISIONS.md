@@ -41,6 +41,7 @@ Orders snapshot commercial terms when created, so changing a value only affects 
 | B16 | **Loads above 25 t** | No platform quote; buyer must split or declare external transport | |
 | B17 | **External transport PoD** | The buyer's delivery confirmation with received weight is the PoD | No driver app is involved. |
 | B18 | **Credits on dead orders / overpayments** | Never applied to a tranche; held in escrow, ops alerted, refunded from the console | |
+| B20 | **Unpaid matches** | An order with no advance after 48 h is cancelled and its listing or RFQ (with its bids) goes back on the market. A buyer can cancel before paying. Phones re-mask. Part-paid orders are never auto-cancelled; ops is alerted. | `advanceExpiryHours`. PRD is silent, but without this a non-paying buyer locks up a farmer's produce indefinitely. |
 | B19 | **E-Way bill** | Mandatory before pickup on every platform trip | The legal threshold is ₹50,000 of goods and varies for some agricultural produce. Check with your CA whether to relax it. |
 
 ## C. Legal, tax and compliance: needs a professional, not me
@@ -73,7 +74,8 @@ Mock adapters are exercised by the full test suite. **Real adapters compile and 
 
 - **Self-cert "in-app only" is strong but not absolute.** The API refuses any video without a single-use, server-issued capture token, and checks hash, GPS radius and timestamps. A determined attacker with a modified client can still feed a fake camera stream and spoof GPS, particularly in a PWA. Real attestation needs a native app with Play Integrity. The buyer always sees the self-certified badge and videos.
 - **Provider calls run inside DB transactions**, so that money and state move together. If a transaction rolls back after a gateway call, a retry reuses the same idempotency key, which relies on the provider honouring it.
-- `/metrics` is public: protect it at the network edge.
+- `/metrics` and `/docs` are public: protect them at the network edge. No security-header middleware is included; add it there too.
+- GPS and check-in positions are device-reported and can be spoofed on a rooted phone.
 - Production boot refuses missing `JWT_SECRET`, `PII_ENCRYPTION_KEY` or `PII_HASH_KEY`. Mock bank and OTP echo are disabled in production.
 - Rotating `PII_ENCRYPTION_KEY` has no migration tooling yet.
 

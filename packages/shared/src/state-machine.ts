@@ -41,7 +41,7 @@ export type GuardName = keyof typeof GUARDS;
 /** Named side effects; the API registers one handler per name and runs them inside the transition's transaction. */
 export type Effect =
   | 'ISSUE_VAN' | 'START_SLA' | 'ASSIGN_INSPECTOR' | 'NOTIFY_PARTIES' | 'RELEASE_FREIGHT' | 'OPEN_DISPUTE_WINDOW' | 'SETTLE'
-  | 'REFUND_ALL' | 'POST_DEFAULT_FEE' | 'CANCEL_TIMERS' | 'ALERT_ADMIN';
+  | 'REFUND_ALL' | 'POST_DEFAULT_FEE' | 'CANCEL_TIMERS' | 'ALERT_ADMIN' | 'RELEASE_MATCH';
 
 export interface Transition {
   from: OrderState;
@@ -64,8 +64,8 @@ const DEPART_ACTORS = ['LOGISTICS', 'BUYER', 'FARMER', 'ADMIN'] as const;
 
 export const ORDER_TRANSITIONS: readonly Transition[] = [
   { from: S.MATCHED, to: S.AWAITING_ADVANCE, actors: SYS, auto: true, effects: ['ISSUE_VAN', 'NOTIFY_PARTIES'] },
-  { from: S.MATCHED, to: S.CANCELLED, actors: ['BUYER', 'ADMIN', 'SYSTEM'] },
-  { from: S.AWAITING_ADVANCE, to: S.CANCELLED, actors: ['BUYER', 'ADMIN', 'SYSTEM'], effects: ['CANCEL_TIMERS', 'NOTIFY_PARTIES'] },
+  { from: S.MATCHED, to: S.CANCELLED, actors: ['BUYER', 'ADMIN', 'SYSTEM'], effects: ['RELEASE_MATCH'] },
+  { from: S.AWAITING_ADVANCE, to: S.CANCELLED, actors: ['BUYER', 'ADMIN', 'SYSTEM'], effects: ['CANCEL_TIMERS', 'RELEASE_MATCH', 'NOTIFY_PARTIES'] },
   { from: S.AWAITING_ADVANCE, to: S.ADVANCE_LOCKED, actors: SYS, auto: true, guards: ['advancePaid'], effects: ['START_SLA', 'ASSIGN_INSPECTOR', 'NOTIFY_PARTIES'] },
   { from: S.ADVANCE_LOCKED, to: S.LOGISTICS_PENDING, actors: SYS, auto: true },
   { from: S.LOGISTICS_PENDING, to: S.LOGISTICS_SECURED, actors: SYS, auto: true, guards: ['logisticsSecured'], effects: ['NOTIFY_PARTIES'] },
