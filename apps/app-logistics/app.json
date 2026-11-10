@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "Agrimate Logistics",
+    "slug": "agrimate-logistics",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "platforms": ["android", "ios"],
+    "android": {
+      "package": "in.agrimate.logistics",
+      "softwareKeyboardLayoutMode": "resize",
+      "permissions": ["android.permission.CAMERA", "android.permission.ACCESS_FINE_LOCATION", "android.permission.ACCESS_COARSE_LOCATION"]
+    },
+    "ios": {
+      "bundleIdentifier": "in.agrimate.logistics",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Agrimate needs the camera to photograph documents and proof of delivery.",
+        "NSLocationWhenInUseUsageDescription": "Agrimate records your location as part of proof of delivery."
+      }
+    },
+    "plugins": [
+      ["expo-camera", { "cameraPermission": "Agrimate needs the camera to photograph documents and proof of delivery.", "microphonePermission": false, "recordAudioAndroid": false }],
+      ["expo-location", { "locationWhenInUsePermission": "Agrimate records your location as part of proof of delivery." }],
+      "expo-secure-store"
+    ]
+  }
+}

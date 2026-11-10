@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "Agrimate Inspector",
+    "slug": "agrimate-inspector",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "platforms": ["android", "ios"],
+    "android": {
+      "package": "in.agrimate.inspector",
+      "softwareKeyboardLayoutMode": "resize",
+      "permissions": ["android.permission.CAMERA", "android.permission.ACCESS_FINE_LOCATION", "android.permission.ACCESS_COARSE_LOCATION"]
+    },
+    "ios": {
+      "bundleIdentifier": "in.agrimate.inspector",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Agrimate needs the camera to photograph the produce and the weighing scale.",
+        "NSLocationWhenInUseUsageDescription": "Agrimate needs your location to check you in at the pickup point."
+      }
+    },
+    "plugins": [
+      ["expo-camera", { "cameraPermission": "Agrimate needs the camera to photograph the produce and the weighing scale.", "microphonePermission": false, "recordAudioAndroid": false }],
+      ["expo-location", { "locationWhenInUsePermission": "Agrimate needs your location to check you in at the pickup point." }],
+      "expo-secure-store"
+    ]
+  }
+}
