@@ -1,0 +1,8 @@
+@import "tailwindcss";
+@source "../../../../packages/ui/src";
+
+html, body { height: 100%; }
+body { background: #f8fafc; color: #0f172a; }
+
+/* Keyboard focus stays visible on plain links and summary toggles, which the shared primitives do not cover. */
+a:focus-visible, summary:focus-visible { outline: 2px solid #047857; outline-offset: 2px; border-radius: 2px; }

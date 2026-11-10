@@ -1,0 +1,18 @@
+@import "tailwindcss";
+@source "../../../../packages/ui/src";
+
+/* No web fonts, to keep payloads small: Android ships Noto for Devanagari and Bengali/Assamese script. */
+html {
+  font-size: 18px;
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  font-family: system-ui, -apple-system, "Noto Sans", "Noto Sans Bengali", "Noto Sans Devanagari", Roboto, sans-serif;
+  line-height: 1.5;
+  background: #ffffff;
+  color: #0f172a;
+  -webkit-tap-highlight-color: transparent;
+}
+/* Conjuncts and matras are clipped by tight line boxes. */
+h1, h2, h3, button, a { line-height: 1.35; }
+input, select, button { font-size: 1.05rem; }
