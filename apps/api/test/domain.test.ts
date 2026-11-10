@@ -7,6 +7,7 @@ import { allocateCredit } from '../src/payments/payments.service';
 import { renderTemplate, TEMPLATE_NAMES } from '../src/notifications/templates';
 import { CryptoService, PrismaService, redact } from '../src/core/core';
 import { RotationReport, rotatePiiKey } from '../src/core/pii-rotation';
+import { seedMasters } from '../prisma/masters';
 import { Harness, NAGAON, GUWAHATI_PIN } from './harness';
 
 let h: Harness;
@@ -470,6 +471,17 @@ describe('auth & security', () => {
     const http = (await import('supertest')).default(h.app.getHttpServer());
     expect((await http.get('/health')).body.status).toBe('ok');
     expect((await http.get('/metrics')).text).toContain('agrimate_ledger_trial_balance_paise 0');
+  });
+  it('re-seeding at startup keeps admin edits to commodities and grades', async () => {
+    const prisma = h.app.get(PrismaService) as unknown as PrismaClient;
+    await seedMasters(prisma);
+    const grade = await h.prisma.grade.findFirstOrThrow({ include: { commodity: true } });
+    const edited = [{ key: 'moisture', label: 'Moisture', unit: '%', max: 7, required: true }];
+    await h.prisma.grade.update({ where: { id: grade.id }, data: { name: 'Edited grade', parameters: edited } });
+    await h.prisma.commodity.update({ where: { id: grade.commodityId }, data: { name: 'Edited commodity' } });
+    await seedMasters(prisma);
+    const after = await h.prisma.grade.findUniqueOrThrow({ where: { id: grade.id }, include: { commodity: true } });
+    expect(after).toMatchObject({ name: 'Edited grade', parameters: edited, commodity: { name: 'Edited commodity' } });
   });
   it('metrics need the token once one is set', async () => {
     const http = (await import('supertest')).default(h.app.getHttpServer());

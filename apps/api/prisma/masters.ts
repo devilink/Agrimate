@@ -57,10 +57,11 @@ This version requires legal review before production use.`;
 
 export async function seedMasters(prisma: PrismaClient) {
   for (const c of COMMODITIES) {
-    const row = await prisma.commodity.upsert({ where: { code: c.code }, create: { code: c.code, name: c.name, names: c.names }, update: { name: c.name, names: c.names } });
+    // Create-only: this runs on every API start, and must not undo what admins have since edited.
+    const row = await prisma.commodity.upsert({ where: { code: c.code }, create: { code: c.code, name: c.name, names: c.names }, update: {} });
     for (const g of c.grades) {
       const parameters = g.parameters as unknown as Prisma.InputJsonValue;
-      await prisma.grade.upsert({ where: { commodityId_code: { commodityId: row.id, code: g.code } }, create: { commodityId: row.id, code: g.code, name: g.name, parameters }, update: { name: g.name, parameters } });
+      await prisma.grade.upsert({ where: { commodityId_code: { commodityId: row.id, code: g.code } }, create: { commodityId: row.id, code: g.code, name: g.name, parameters }, update: {} });
     }
   }
   const tiers = [
