@@ -136,14 +136,14 @@ Ledger is append-only and each journal sums to zero (enforced by a deferred DB c
 Backend is built in the prompt's phase order, with UI work following once the API contract is stable (all portals
 consume the same generated client). Each phase is committed separately.
 
-- [ ] **1 Foundation** — monorepo, Docker, Nest skeleton, Prisma schema, auth, shared package, seed
-- [ ] **2 Masters & onboarding** — commodity/grade, tiers, fee config, KYC/KYB/degree/vehicle flows, review queues
-- [ ] **3 Marketplace** — RFQ, bids, listings, matching, phone unlock
-- [ ] **4 Escrow & ledger** — Razorpay adapter + mock, VANs, webhooks, ledger, tranches, settlement, refunds, negative balance, reconciliation
-- [ ] **5 SLA & inspection** — BullMQ timers, auto-assign, inspector flows, self-certification
-- [ ] **6 Logistics** — freight, booking, trips, E-Way bill, PoD, freight payout
-- [ ] **7 Quality & disputes** — shrinkage guard, organic spot tests, dispute workflow
-- [ ] **8 Market data** — Agmarknet adapter, daily cron, suggestions
-- [ ] **9 Notifications** — SMS/OTP adapters, outbox, SLA alerts
-- [ ] **10a Portals** — buyer, admin, farmer PWA (i18n), inspector app, logistics app
-- [ ] **10b Hardening** — Section 10 acceptance suite, security review, README, OpenAPI, deployment notes
+- [x] **1 Foundation** — monorepo, Docker, Nest skeleton, Prisma schema, auth, shared package, seed
+- [x] **2 Masters & onboarding** — commodity/grade, tiers, fee config, KYC/KYB/degree/vehicle flows, review queues
+- [x] **3 Marketplace** — RFQ, bids, listings, matching, phone unlock
+- [x] **4 Escrow & ledger** — Razorpay adapter + mock, VANs, webhooks, ledger, tranches, settlement, refunds, negative balance, reconciliation
+- [x] **5 SLA & inspection** — BullMQ timers, auto-assign, inspector flows, self-certification
+- [x] **6 Logistics** — freight, booking, trips, E-Way bill, PoD, freight payout
+- [x] **7 Quality & disputes** — shrinkage guard, organic spot tests, dispute workflow
+- [x] **8 Market data** — Agmarknet adapter, daily cron, suggestions
+- [x] **9 Notifications** — SMS/OTP adapters, outbox, SLA alerts
+- [x] **10a Portals** — buyer, admin, farmer PWA (i18n), inspector app, logistics app
+- [x] **10b Hardening** — Section 10 acceptance suite, security review, README, OpenAPI, deployment notes

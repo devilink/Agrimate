@@ -24,6 +24,16 @@ export const env = {
   get jwtSecret() { return secret('JWT_SECRET', 'dev-only-jwt-secret-change-me'); },
   get piiKey() { return secret('PII_ENCRYPTION_KEY', 'dev-only-pii-key-change-me'); },
   get piiHashKey() { return secret('PII_HASH_KEY', 'dev-only-pii-hash-key-change-me'); },
+  /** Set only during a key rotation: values written under the old key stay readable until `pii:rotate` rewrites them. */
+  get piiKeyPrevious() { return process.env.PII_ENCRYPTION_KEY_PREVIOUS || undefined; },
+  /** How many reverse proxies sit in front of the API. Off by default: trusting X-Forwarded-For with no proxy lets clients fake their IP and dodge rate limits. */
+  get trustProxyHops() {
+    const hops = Number(process.env.TRUST_PROXY_HOPS ?? 0);
+    if (!Number.isInteger(hops) || hops < 0) throw new Error('TRUST_PROXY_HOPS must be a whole number, 0 or more');
+    return hops;
+  },
+  get metricsToken() { return process.env.METRICS_TOKEN || undefined; },
+  get apiDocsEnabled() { return process.env.API_DOCS_ENABLED ? process.env.API_DOCS_ENABLED === 'true' : !PROD; },
   get paymentProvider() { return process.env.PAYMENT_PROVIDER ?? 'mock'; },
   get mapsProvider() { return process.env.MAPS_PROVIDER ?? 'mock'; },
   get smsProvider() { return process.env.SMS_PROVIDER ?? 'mock'; },
@@ -37,6 +47,11 @@ export const env = {
   get exposeDevOtp() { return !PROD && this.smsProvider === 'mock'; },
   get corsOrigins() { return (process.env.CORS_ORIGINS ?? 'http://localhost:3000,http://localhost:3001,http://localhost:3002').split(','); },
 };
+
+/** Compares secrets without leaking, through timing, how much of the guess was right. */
+export function constantTimeEqual(a: string, b: string): boolean {
+  return timingSafeEqual(createHash('sha256').update(a).digest(), createHash('sha256').update(b).digest());
+}
 
 // ---- Prisma ------------------------------------------------------------------------------------------------------
 @Injectable()
@@ -65,7 +80,8 @@ export class Clock {
 const scryptAsync = promisify(scrypt) as (pw: string, salt: Buffer, len: number) => Promise<Buffer>;
 @Injectable()
 export class CryptoService {
-  private get key() { return createHash('sha256').update(env.piiKey).digest(); }
+  private keyFrom(secretValue: string) { return createHash('sha256').update(secretValue).digest(); }
+  private get key() { return this.keyFrom(env.piiKey); }
   /** AES-256-GCM. Format: v1.<iv>.<tag>.<ciphertext> (base64url). */
   encrypt(plain: string): string {
     const iv = randomBytes(12);
@@ -73,12 +89,25 @@ export class CryptoService {
     const ct = Buffer.concat([c.update(plain, 'utf8'), c.final()]);
     return ['v1', iv.toString('base64url'), c.getAuthTag().toString('base64url'), ct.toString('base64url')].join('.');
   }
-  decrypt(blob: string): string {
+  private open(blob: string, key: Buffer): string {
     const [v, iv, tag, ct] = blob.split('.');
     if (v !== 'v1' || !iv || !tag || !ct) throw new Error('Unrecognised ciphertext');
-    const d = createDecipheriv('aes-256-gcm', this.key, Buffer.from(iv, 'base64url'));
+    const d = createDecipheriv('aes-256-gcm', key, Buffer.from(iv, 'base64url'));
     d.setAuthTag(Buffer.from(tag, 'base64url'));
     return Buffer.concat([d.update(Buffer.from(ct, 'base64url')), d.final()]).toString('utf8');
+  }
+  /** GCM authenticates, so a wrong key fails outright rather than returning garbage. That is what makes the fallback safe. */
+  decrypt(blob: string): string {
+    try {
+      return this.open(blob, this.key);
+    } catch (e) {
+      const previous = env.piiKeyPrevious;
+      if (!previous) throw e;
+      return this.open(blob, this.keyFrom(previous));
+    }
+  }
+  usesCurrentKey(blob: string): boolean {
+    try { this.open(blob, this.key); return true; } catch { return false; }
   }
   /** Keyed blind index: same input maps to the same value, but it can't be brute-forced without the key. */
   blindIndex(value: string): string { return createHmac('sha256', env.piiHashKey).update(value).digest('hex'); }

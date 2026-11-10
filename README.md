@@ -22,7 +22,7 @@ cp .env.example .env              # then fill in DATABASE_URL and DIRECT_URL
 docker compose up --build
 ```
 
-Migrates and seeds on every start. Seeding leaves existing rows alone but creates the demo logins below, so remove it from `infra/Dockerfile.api` before pointing this at a database with real users. First build takes several minutes.
+Migrates and seeds on every start. This Compose file is the local demo stack: it runs in development mode with the demo logins below, so don't point it at a database with real users. The API image itself defaults to production, with no demo data. First build takes several minutes.
 
 | Service | URL |
 |---|---|
@@ -86,11 +86,14 @@ OTP requests are limited to 5 per hour per phone.
 
 ## Tests
 
-The API suite **wipes every table in the database it connects to**, so give it a separate, throwaway Supabase project and never the app's own. Set these in your shell; the suite deliberately ignores `apps/api/.env`.
+The API suite **wipes every table in the database it connects to**, so give it a throwaway database and never the app's own. A disposable local Postgres is enough. Set these in your shell; the suite deliberately ignores `apps/api/.env`.
 
 ```bash
-export TEST_DATABASE_URL='...'        # the test project's DATABASE_URL equivalent
-export TEST_DIRECT_URL='...'          # the test project's DIRECT_URL equivalent
+docker run -d --rm --name agrimate-test-db --tmpfs /var/lib/postgresql/data \
+  -e POSTGRES_USER=agrimate -e POSTGRES_PASSWORD=agrimate -e POSTGRES_DB=agrimate_test \
+  -p 127.0.0.1:15433:5432 postgres:17-alpine
+export TEST_DATABASE_URL='postgresql://agrimate:agrimate@localhost:15433/agrimate_test'
+export TEST_DIRECT_URL="$TEST_DATABASE_URL"
 # PowerShell: $env:TEST_DATABASE_URL='...'; $env:TEST_DIRECT_URL='...'
 pnpm infra:up
 
@@ -148,9 +151,20 @@ After changing an API route or DTO, run `pnpm gen:client`.
 
 ## Deployment notes
 
-- `NODE_ENV=production` requires `JWT_SECRET`, `PII_ENCRYPTION_KEY` and `PII_HASH_KEY` (the API won't boot without them), turns on JSON logs, and disables the mock bank, time travel and OTP echo.
+- `NODE_ENV=production`, the API image's default, requires `JWT_SECRET`, `PII_ENCRYPTION_KEY` and `PII_HASH_KEY` (the API won't boot without them), turns on JSON logs, and disables the mock bank, time travel, OTP echo, demo seeding and `/docs` (`API_DOCS_ENABLED=true` turns it back on).
+- First admin: set `ADMIN_PHONE`, `ADMIN_EMAIL` and `ADMIN_PASSWORD` for the first start. The seed creates that account, and won't touch it again. Remove the three variables afterwards.
 - Run one API instance to start with. BullMQ workers run in-process and are safe to scale, since jobs are idempotent and timers claim atomically. `sla-sweep` recovers any timers lost in a Redis outage.
-- Behind a load balancer: set Express `trust proxy` so that per-IP rate limits see real client addresses. Add security headers and restrict `/metrics` and `/docs` at the edge.
+- Behind a load balancer: set `TRUST_PROXY_HOPS` to the number of proxies, so that per-IP rate limits see real client addresses. Leave it at 0 with no proxy, or clients can fake their IP.
+- `/metrics` needs `Authorization: Bearer <METRICS_TOKEN>`, and stays closed in production until that is set.
+- Portal images: build with `NEXT_PUBLIC_MOCK_TOOLS=false` (the default) and your real `NEXT_PUBLIC_*` URLs, which are fixed at build time.
 - Point Razorpay webhooks at `POST /api/v1/webhooks/razorpay`.
-- Back up Postgres. The ledger and event log are append-only and are your financial record.
+- Back up Postgres. The ledger and event log are append-only and are your financial record. On Supabase, confirm that your plan's daily backups meet your retention needs, turn on point-in-time recovery for production, and test a restore into a separate project before launch.
 - The farmer PWA's camera and crypto APIs need HTTPS outside `localhost`.
+
+### Rotating the PII encryption key
+
+1. Deploy with `PII_ENCRYPTION_KEY` set to the new key and `PII_ENCRYPTION_KEY_PREVIOUS` set to the old one. Both now read; new writes use the new key.
+2. With the same variables set, preview with `pnpm --filter @agrimate/api pii:rotate`, then write with `pnpm --filter @agrimate/api pii:rotate --apply`. It can be re-run or interrupted safely.
+3. Continue only if the report shows `unreadable` as 0. Then remove `PII_ENCRYPTION_KEY_PREVIOUS` and redeploy.
+
+`PII_HASH_KEY` can't be rotated this way, since every phone lookup index would have to be recomputed. Treat it as permanent unless it leaks.

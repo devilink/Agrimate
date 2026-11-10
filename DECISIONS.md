@@ -74,10 +74,10 @@ Mock adapters are exercised by the full test suite. **Real adapters compile and 
 
 - **Self-cert "in-app only" is strong but not absolute.** The API refuses any video without a single-use, server-issued capture token, and checks hash, GPS radius and timestamps. A determined attacker with a modified client can still feed a fake camera stream and spoof GPS, particularly in a PWA. Real attestation needs a native app with Play Integrity. The buyer always sees the self-certified badge and videos.
 - **Provider calls run inside DB transactions**, so that money and state move together. If a transaction rolls back after a gateway call, a retry reuses the same idempotency key, which relies on the provider honouring it.
-- `/metrics` and `/docs` are public: protect them at the network edge. No security-header middleware is included; add it there too.
+- `/metrics` needs a bearer token and `/docs` is off in production. The API sends Helmet's headers. The portals send framing, sniffing, referrer and permissions headers but **no Content-Security-Policy**, because Next.js needs a per-request nonce for one. Add it before handling real money if your review requires it.
 - GPS and check-in positions are device-reported and can be spoofed on a rooted phone.
 - Production boot refuses missing `JWT_SECRET`, `PII_ENCRYPTION_KEY` or `PII_HASH_KEY`. Mock bank and OTP echo are disabled in production.
-- Rotating `PII_ENCRYPTION_KEY` has no migration tooling yet.
+- `PII_ENCRYPTION_KEY` can be rotated (see the README). `PII_HASH_KEY` has no rotation path.
 
 ## G. Engineering choices
 

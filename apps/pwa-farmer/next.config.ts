@@ -16,6 +16,13 @@ const config: NextConfig = {
   env: { NEXT_PUBLIC_BUILD_ID: buildId },
   async headers() {
     return [
+      { source: '/:path*', headers: [
+        { key: 'X-Frame-Options', value: 'DENY' },
+        { key: 'X-Content-Type-Options', value: 'nosniff' },
+        { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+        // Self-certification records video with GPS.
+        { key: 'Permissions-Policy', value: 'camera=(self), microphone=(self), geolocation=(self)' },
+      ] },
       // The browser must always re-check the worker script, or updates stall.
       { source: '/sw.js', headers: [{ key: 'Cache-Control', value: 'no-cache' }, { key: 'Service-Worker-Allowed', value: '/' }] },
       { source: '/manifest.webmanifest', headers: [{ key: 'Content-Type', value: 'application/manifest+json' }] },

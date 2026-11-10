@@ -1,11 +1,12 @@
 /** Ops console backend, health/metrics, and the mock bank used in development. Every admin mutation is audited. */
-import { BadRequestException, Body, ConflictException, Controller, ForbiddenException, Get, HttpCode, Inject, Injectable, NotFoundException, Param, Post, Query } from '@nestjs/common';
+import { BadRequestException, Body, ConflictException, Controller, ForbiddenException, Get, HttpCode, Inject, Injectable, NotFoundException, Param, Post, Query, Req, UnauthorizedException } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import { Prisma } from '@prisma/client';
+import type { Request } from 'express';
 import { MockPaymentGateway, PAYMENT_GATEWAY, PaymentGateway } from '../adapters/payments';
 import { AuthUser, CurrentUser, Public, Roles } from '../auth/auth';
-import { AuditService, Clock, CryptoService, env, PrismaService } from '../core/core';
+import { AuditService, Clock, constantTimeEqual, CryptoService, env, PrismaService } from '../core/core';
 import { Accounts, LedgerService, NotificationsService, OrderEngine, TimerService } from '../engine/engine';
 import { InspectionService } from '../inspection/inspection.service';
 import { DisputesService } from '../logistics/logistics.service';
@@ -209,9 +210,11 @@ export class HealthController {
     await this.prisma.$queryRaw`SELECT 1`;
     return { status: 'ok', time: new Date().toISOString(), providers: { payment: env.paymentProvider, maps: env.mapsProvider, sms: env.smsProvider, kyc: env.kycProvider, market: env.marketProvider, storage: env.storageProvider } };
   }
-  /** Prometheus text format. Protect at the network edge in production. */
+  /** Prometheus text format. Needs `Authorization: Bearer <METRICS_TOKEN>` when that is set, and is closed in production when it isn't. */
   @Public() @Get('metrics')
-  async metrics() {
+  async metrics(@Req() req: Request) {
+    const token = env.metricsToken;
+    if (token ? !constantTimeEqual(req.headers.authorization ?? '', `Bearer ${token}`) : env.isProd) throw new UnauthorizedException();
     const [byState, pendingOutbox, openAlerts, trial] = await Promise.all([
       this.prisma.order.groupBy({ by: ['state'], _count: true }),
       this.prisma.notificationOutbox.count({ where: { status: 'PENDING' } }),

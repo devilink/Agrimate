@@ -99,8 +99,9 @@ ok(final.state === 'DISPUTE_WINDOW', 'order is in its dispute window');
 const admin = (await must(null, 'POST', '/auth/login', { email: 'admin@agrimate.local', password: 'Admin@12345' })).accessToken;
 const accounts = await must(admin, 'GET', '/admin/ledger/accounts');
 ok(accounts.trialBalancePaise === '0', 'ledger trial balance is zero');
-const metricsBefore = await (await fetch(`${API}/metrics`)).text();
-const pending = () => fetch(`${API}/metrics`).then((r) => r.text()).then((s) => Number(/agrimate_outbox_pending (\d+)/.exec(s)?.[1] ?? -1));
+const metricsInit = process.env.METRICS_TOKEN ? { headers: { Authorization: `Bearer ${process.env.METRICS_TOKEN}` } } : {};
+const metricsBefore = await (await fetch(`${API}/metrics`, metricsInit)).text();
+const pending = () => fetch(`${API}/metrics`, metricsInit).then((r) => r.text()).then((s) => Number(/agrimate_outbox_pending (\d+)/.exec(s)?.[1] ?? -1));
 let drained = false;
 for (let i = 0; i < 12 && !drained; i++) { if ((await pending()) === 0) drained = true; else await new Promise((r) => setTimeout(r, 3000)); }
 ok(drained, 'BullMQ worker drained the notification outbox', metricsBefore);

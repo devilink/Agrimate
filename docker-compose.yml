@@ -11,6 +11,8 @@ services:
       redis: { condition: service_healthy }
       minio: { condition: service_started }
     environment:
+      # This file is the local demo stack. The image itself defaults to production.
+      NODE_ENV: development
       DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env, see .env.example}
       DIRECT_URL: ${DIRECT_URL:?Set DIRECT_URL in .env, see .env.example}
       REDIS_URL: redis://redis:6379
@@ -30,7 +32,7 @@ services:
       retries: 30
 
   web-buyer:
-    build: { context: ., dockerfile: infra/Dockerfile.web, args: { APP: web-buyer, PORT: 3000 } }
+    build: { context: ., dockerfile: infra/Dockerfile.web, args: { APP: web-buyer, PORT: 3000, NEXT_PUBLIC_MOCK_TOOLS: 'true' } }
     depends_on: { api: { condition: service_healthy } }
     ports: ['3000:3000']
 

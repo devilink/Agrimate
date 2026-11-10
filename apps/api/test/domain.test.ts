@@ -1,11 +1,12 @@
 /** Beyond Section 10: security, SLA behaviour, payment edge cases, ledger guarantees, and contract parity. */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { $Enums } from '@prisma/client';
+import { $Enums, PrismaClient } from '@prisma/client';
 import * as shared from '@agrimate/shared';
 import { rupees } from '@agrimate/shared';
 import { allocateCredit } from '../src/payments/payments.service';
 import { renderTemplate, TEMPLATE_NAMES } from '../src/notifications/templates';
-import { redact } from '../src/core/core';
+import { CryptoService, PrismaService, redact } from '../src/core/core';
+import { RotationReport, rotatePiiKey } from '../src/core/pii-rotation';
 import { Harness, NAGAON, GUWAHATI_PIN } from './harness';
 
 let h: Harness;
@@ -469,6 +470,59 @@ describe('auth & security', () => {
     const http = (await import('supertest')).default(h.app.getHttpServer());
     expect((await http.get('/health')).body.status).toBe('ok');
     expect((await http.get('/metrics')).text).toContain('agrimate_ledger_trial_balance_paise 0');
+  });
+  it('metrics need the token once one is set', async () => {
+    const http = (await import('supertest')).default(h.app.getHttpServer());
+    process.env.METRICS_TOKEN = 'metrics-test-token';
+    try {
+      expect((await http.get('/metrics')).status).toBe(401);
+      expect((await http.get('/metrics').set('Authorization', 'Bearer wrong')).status).toBe(401);
+      const ok = await http.get('/metrics').set('Authorization', 'Bearer metrics-test-token');
+      expect(ok.status).toBe(200);
+      expect(ok.text).toContain('agrimate_ledger_trial_balance_paise 0');
+    } finally { delete process.env.METRICS_TOKEN; }
+  });
+  it('sends security headers, and does not trust forwarded IPs by default', async () => {
+    const res = await (await import('supertest')).default(h.app.getHttpServer()).get('/health');
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
+    expect(res.headers['content-security-policy']).toBeTruthy();
+    expect(res.headers['x-powered-by']).toBeUndefined();
+    expect((h.app.getHttpAdapter().getInstance() as { get(k: string): unknown }).get('trust proxy')).toBeFalsy();
+  });
+  it('rotates the PII key: preview writes nothing, both keys read during it, and it can be re-run', async () => {
+    const crypto = h.app.get(CryptoService);
+    const prisma = h.app.get(PrismaService) as unknown as PrismaClient;
+    const buyer = await h.buyer();
+    const before = (await h.prisma.user.findUniqueOrThrow({ where: { id: buyer.id } })).phoneEnc;
+    const phone = crypto.decrypt(before);
+    const usersRow = (r: RotationReport[]) => r.find((x) => x.table === 'User')!;
+    const original = process.env.PII_ENCRYPTION_KEY;
+    process.env.PII_ENCRYPTION_KEY = 'rotation-test-new-key';
+    try {
+      // The old key is gone and not declared: nothing can be read, and nothing is damaged.
+      const blocked = await rotatePiiKey(prisma, crypto, { dryRun: false });
+      expect(usersRow(blocked).unreadable).toBeGreaterThan(0);
+      expect((await h.prisma.user.findUniqueOrThrow({ where: { id: buyer.id } })).phoneEnc).toBe(before);
+
+      process.env.PII_ENCRYPTION_KEY_PREVIOUS = original ?? 'dev-only-pii-key-change-me';
+      expect(crypto.decrypt(before)).toBe(phone);
+      expect(usersRow(await rotatePiiKey(prisma, crypto, { dryRun: true })).rotated).toBeGreaterThan(0);
+      expect((await h.prisma.user.findUniqueOrThrow({ where: { id: buyer.id } })).phoneEnc).toBe(before);
+
+      const applied = usersRow(await rotatePiiKey(prisma, crypto, { dryRun: false }));
+      expect(applied.rotated).toBeGreaterThan(0);
+      expect(applied.unreadable).toBe(0);
+      const after = (await h.prisma.user.findUniqueOrThrow({ where: { id: buyer.id } })).phoneEnc;
+      expect(after).not.toBe(before);
+
+      delete process.env.PII_ENCRYPTION_KEY_PREVIOUS;
+      expect(crypto.decrypt(after)).toBe(phone);
+      expect(() => crypto.decrypt(before)).toThrow();
+      expect(usersRow(await rotatePiiKey(prisma, crypto, { dryRun: false }))).toMatchObject({ rotated: 0, unreadable: 0 });
+    } finally {
+      delete process.env.PII_ENCRYPTION_KEY_PREVIOUS;
+      if (original === undefined) delete process.env.PII_ENCRYPTION_KEY; else process.env.PII_ENCRYPTION_KEY = original;
+    }
   });
 });
 

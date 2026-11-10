@@ -49,6 +49,14 @@ async function farmer(phone: string, name: string, pan: string, pin: string, o: 
 async function main() {
   await seedMasters(prisma);
 
+  // Creates the first real admin. Skipped if that phone number already has an account, so a later seed can't reset the password.
+  const { ADMIN_PHONE, ADMIN_EMAIL, ADMIN_PASSWORD } = process.env;
+  if (ADMIN_PHONE && ADMIN_EMAIL && ADMIN_PASSWORD) await user(ADMIN_PHONE, 'ADMIN', process.env.ADMIN_NAME ?? 'Agrimate Ops', { email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
+
+  // Demo accounts have published passwords, so production gets them only if someone asks explicitly.
+  const demo = process.env.SEED_DEMO ? process.env.SEED_DEMO === 'true' : process.env.NODE_ENV !== 'production';
+  if (!demo) { console.log('Seed complete, without demo data.'); return; }
+
   await user('+919000000001', 'ADMIN', 'Agrimate Ops', { email: 'admin@agrimate.local', password: 'Admin@12345' });
 
   const b1 = await buyer('+919000000101', 'Brahmaputra Foods Pvt Ltd', 'buyer@agrimate.local', 'AABCB1234C', '18', '781001');

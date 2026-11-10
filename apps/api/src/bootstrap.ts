@@ -1,6 +1,7 @@
 import { ArgumentsHost, Catch, ExceptionFilter, INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import type { Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
+import helmet from 'helmet';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { env } from './core/core';
 
@@ -22,7 +23,13 @@ class PrismaErrorFilter implements ExceptionFilter {
 }
 
 export function configureApp(app: INestApplication) {
-  (app.getHttpAdapter().getInstance() as { disable(k: string): void }).disable('x-powered-by');
+  const express = app.getHttpAdapter().getInstance() as { disable(k: string): void; set(k: string, v: unknown): void };
+  express.disable('x-powered-by');
+  if (env.trustProxyHops > 0) express.set('trust proxy', env.trustProxyHops);
+  // The portals are on other origins. Swagger UI relies on inline scripts, which the default CSP would block.
+  const headers = helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } });
+  const docsHeaders = helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'cross-origin' } });
+  app.use((req: Request, res: Response, next: NextFunction) => (req.path.startsWith('/docs') ? docsHeaders : headers)(req, res, next));
   app.useGlobalFilters(new PrismaErrorFilter());
   app.setGlobalPrefix('api/v1', { exclude: ['health', 'metrics'] });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true, transformOptions: { enableImplicitConversion: false } }));
