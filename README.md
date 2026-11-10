@@ -2,24 +2,32 @@
 
 B2B agri-trade platform for India: bulk Buyers ↔ Farmers/FPOs, quality verified by Agri-Inspectors, produce moved by Logistics partners, money held in RBI-compliant escrow (Razorpay Smart Collect + Route).
 
-The full system runs locally with **zero API keys**. Every third-party integration sits behind an adapter with a working mock.
+The database is hosted on Supabase. Apart from its two connection strings, the system runs locally with **zero API keys**: every other third-party integration sits behind an adapter with a working mock.
 
 - [PLAN.md](./PLAN.md): architecture, data model, state machines, API surface
 - [DECISIONS.md](./DECISIONS.md): assumptions to confirm, compliance gaps, what isn't proven
 
 ## Run it
 
+### Database (Supabase)
+
+Create a Supabase project, in Mumbai (`ap-south-1`) if your users are in India. From Dashboard > Connect > ORMs > Prisma, copy the two connection strings into `DATABASE_URL` and `DIRECT_URL` (see [.env.example](./.env.example)).
+
+Supabase's Data API is not used. The `lock_data_api` migration denies it access to every table, and you can also switch it off in the project's API settings.
+
 ### Everything in Docker
 
 ```bash
+cp .env.example .env              # then fill in DATABASE_URL and DIRECT_URL
 docker compose up --build
 ```
 
-Migrates and seeds on first start. First build takes several minutes.
+Migrates and seeds on every start. Seeding leaves existing rows alone but creates the demo logins below, so remove it from `infra/Dockerfile.api` before pointing this at a database with real users. First build takes several minutes.
 
 | Service | URL |
 |---|---|
-| Buyer portal | http://localhost:3000 |
+| Landing page, buyer / farmer / transport sign-in, buyer portal | http://localhost:3000 |
+| Console sign-in (admin, quality verifier) | http://localhost:3000/adminagri (unlisted; redirects to :3001/adminagri) |
 | Admin / ops console | http://localhost:3001 |
 | Farmer PWA | http://localhost:3002 |
 | API + Swagger | http://localhost:4000/docs |
@@ -27,12 +35,12 @@ Migrates and seeds on first start. First build takes several minutes.
 
 ### Local development
 
-Requires Node 22+, pnpm 11, Docker.
+Requires Node 22+, pnpm 11, Docker, a Supabase project.
 
 ```bash
 pnpm install
-pnpm infra:up                     # Postgres, Redis, MinIO
-cp .env.example apps/api/.env
+pnpm infra:up                     # Redis, MinIO
+cp .env.example apps/api/.env     # then fill in DATABASE_URL and DIRECT_URL
 pnpm --filter @agrimate/shared build && pnpm --filter @agrimate/api-client build
 pnpm db:migrate && pnpm db:seed
 pnpm dev                          # API + the three web portals
@@ -53,7 +61,7 @@ While SMS is mocked, the OTP is returned by the API as `devOtp`, and the login s
 
 | Role | Login | Notes |
 |---|---|---|
-| Admin | `admin@agrimate.local` / `Admin@12345` | |
+| Admin | `admin@agrimate.local` / `Admin@12345` at `/adminagri`, Admin tab | |
 | Buyer | `buyer@agrimate.local` / `Buyer@12345`, or OTP on `+919000000101` | Brahmaputra Foods, Guwahati |
 | Buyer | `buyer2@agrimate.local` / `Buyer@12345`, or OTP on `+919000000102` | Deccan Agro, Pune |
 | Farmer | OTP on `+919000000201` | Hemanta Bora, Nagaon, Assam (Assamese; holds an organic cert) |
@@ -61,9 +69,9 @@ While SMS is mocked, the OTP is returned by the API as `devOtp`, and the login s
 | Farmer | OTP on `+919000000203` | Sanjay Pawar, Nashik, Maharashtra (Hindi) |
 | Farmer | OTP on `+919000000204` | Gurpreet Singh, Ludhiana, Punjab (Hindi) |
 | Farmer | OTP on `+919000000205` | Rina Kalita: **bank-name mismatch, payouts blocked**, waiting in the admin queue |
-| Inspector | OTP on `+919000000301` to `0304` | One each in Nagaon, Nashik, Bardhaman, Ludhiana |
+| Inspector | OTP on `+919000000301` to `0304` | One each in Nagaon, Nashik, Bardhaman, Ludhiana. Web: `/adminagri`, "Quality verifier" tab, opens the quality check desk |
 | Inspector | OTP on `+919000000305` | Pending approval |
-| Logistics | OTP on `+919000000401` | Kamrup Roadways, verified, with 3 vehicles |
+| Logistics | OTP on `+919000000401` | Kamrup Roadways, verified, with 3 vehicles. Web: main `/login`, "Transport" option, opens the transport desk on :3001 |
 | Logistics | OTP on `+919000000402` | Owner-driver, pending approval |
 
 OTP requests are limited to 5 per hour per phone.
@@ -78,9 +86,13 @@ OTP requests are limited to 5 per hour per phone.
 
 ## Tests
 
+The API suite **wipes every table in the database it connects to**, so give it a separate, throwaway Supabase project and never the app's own. Set these in your shell; the suite deliberately ignores `apps/api/.env`.
+
 ```bash
+export TEST_DATABASE_URL='...'        # the test project's DATABASE_URL equivalent
+export TEST_DIRECT_URL='...'          # the test project's DIRECT_URL equivalent
+# PowerShell: $env:TEST_DATABASE_URL='...'; $env:TEST_DIRECT_URL='...'
 pnpm infra:up
-docker exec agrimate-postgres-1 psql -U agrimate -c "CREATE DATABASE agrimate_test"   # first time only
 
 pnpm --filter @agrimate/shared test   # pure money, pricing, state-machine and rule tests
 pnpm --filter @agrimate/api test      # Section 10 acceptance and domain suites, against real Postgres

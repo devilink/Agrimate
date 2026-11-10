@@ -1,20 +1,6 @@
 name: agrimate
-# Everything runs with zero real API keys: all providers default to their mock adapters (see .env.example).
+# Providers default to their mock adapters (see .env.example). The database is hosted on Supabase, not here.
 services:
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: agrimate
-      POSTGRES_PASSWORD: agrimate
-      POSTGRES_DB: agrimate
-    ports: ['5432:5432']
-    volumes: ['pgdata:/var/lib/postgresql/data']
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U agrimate']
-      interval: 3s
-      timeout: 3s
-      retries: 20
-
   redis:
     image: redis:7-alpine
     command: ['redis-server', '--appendonly', 'yes']
@@ -37,6 +23,5 @@ services:
     volumes: ['miniodata:/data']
 
 volumes:
-  pgdata:
   redisdata:
   miniodata:

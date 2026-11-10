@@ -662,3 +662,32 @@ describe('12. Webhook replay', () => {
     expect(await h.prisma.gatewayPayment.count()).toBe(0);
   });
 });
+
+describe('Admin quality-check and transport boards', () => {
+  it('shows every inspection and trip request to admin only', async () => {
+    const [buyer, farmer, inspector, admin] = [await h.buyer(), await h.farmer(), await h.inspector(), await h.admin()];
+    const partner = await h.partner();
+    const o = await h.rfqOrder(buyer, farmer);
+    await h.credit(buyer, o.id);
+    const booked = await h.api(buyer).post(`/orders/${o.id}/logistics/platform`);
+    await h.credit(buyer, o.id, BigInt(booked.body.freightDuePaise));
+
+    const insp = await h.api(admin).get('/admin/inspections');
+    expect(insp.status).toBe(200);
+    expect(insp.body).toHaveLength(1);
+    expect(insp.body[0]).toMatchObject({ orderId: o.id, status: 'ASSIGNED', inspectorId: inspector.id, inspector: 'Dr. Inspector' });
+    expect((await h.api(admin).get('/admin/inspections?status=UNASSIGNED')).body).toHaveLength(0);
+
+    const trips = await h.api(admin).get('/admin/trips');
+    expect(trips.status).toBe(200);
+    expect(trips.body).toHaveLength(1);
+    expect(trips.body[0]).toMatchObject({ orderId: o.id, status: 'OPEN', partner: null });
+    expect(trips.body[0].fundedAt).toBeTruthy();
+    expect(JSON.stringify(trips.body)).not.toContain(farmer.phone);
+
+    for (const staff of [inspector, partner, buyer]) {
+      expect((await h.api(staff).get('/admin/inspections')).status).toBe(403);
+      expect((await h.api(staff).get('/admin/trips')).status).toBe(403);
+    }
+  });
+});

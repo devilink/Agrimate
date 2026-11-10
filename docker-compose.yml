@@ -1,5 +1,5 @@
-# `docker compose up` runs the whole platform with zero API keys: every provider defaults to its mock.
-# Expo apps run on the host; see README.
+# `docker compose up` runs the whole platform against Supabase: put DATABASE_URL and DIRECT_URL in a root .env.
+# Every other provider defaults to its mock. Expo apps run on the host; see README.
 name: agrimate
 include:
   - infra/docker-compose.yml
@@ -8,11 +8,11 @@ services:
   api:
     build: { context: ., dockerfile: infra/Dockerfile.api }
     depends_on:
-      postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
       minio: { condition: service_started }
     environment:
-      DATABASE_URL: postgresql://agrimate:agrimate@postgres:5432/agrimate
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env, see .env.example}
+      DIRECT_URL: ${DIRECT_URL:?Set DIRECT_URL in .env, see .env.example}
       REDIS_URL: redis://redis:6379
       S3_ENDPOINT: http://minio:9000
       # Signed URLs are opened by the browser on the host, so they must carry a host it can reach.

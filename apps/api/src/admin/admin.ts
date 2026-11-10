@@ -113,6 +113,38 @@ export class AdminController {
     return rows.map((r) => ({ id: r.userId, name: r.user.name, available: r.available, pin: r.pin, serviceRadiusKm: r.serviceRadiusKm }));
   }
 
+  /** Quality-check board: every inspection with its order, so ops can see what is unassigned, in the field or failed. Names only, no phones. */
+  @Get('inspections')
+  async inspectionList(@Query('status') status?: string) {
+    const rows = await this.prisma.inspection.findMany({
+      where: status ? { status: status as Prisma.EnumInspectionStatusFilter['equals'] } : {},
+      include: { order: { include: { commodity: true, grade: true, farmer: { include: { user: { select: { name: true } } } } } }, inspector: { include: { user: { select: { name: true } } } } },
+      orderBy: { scheduledFor: 'asc' }, take: 200,
+    });
+    return rows.map((i) => ({
+      id: i.id, orderId: i.orderId, orderCode: i.order.code, orderState: i.order.state, status: i.status, scheduledFor: i.scheduledFor,
+      commodity: i.order.commodity.name, grade: i.order.grade.name, quantityKg: i.order.quantityKg, pickupPin: i.order.pickupPin, farmer: i.order.farmer.user.name,
+      inspectorId: i.inspectorId, inspector: i.inspector?.user.name ?? null, assignAttempts: i.assignAttempts, selfCertRequired: i.order.selfCertRequired,
+      checkInAt: i.checkInAt, checkInMetres: i.checkInMetres, scaleWeightKg: i.scaleWeightKg, gradeCheck: i.gradeCheck, inspectedAt: i.inspectedAt,
+    }));
+  }
+
+  /** Transport board: every trip request, funded or not, with who has taken it. */
+  @Get('trips')
+  async tripList(@Query('status') status?: string) {
+    const rows = await this.prisma.trip.findMany({
+      where: status ? { status: status as Prisma.EnumTripStatusFilter['equals'] } : {},
+      include: { order: { include: { commodity: true } }, vehicle: { select: { regNo: true } }, partner: { include: { user: { select: { name: true } } } } },
+      orderBy: { createdAt: 'desc' }, take: 200,
+    });
+    return rows.map((t) => ({
+      id: t.id, orderId: t.orderId, orderCode: t.order.code, orderState: t.order.state, status: t.status, commodity: t.order.commodity.name, quantityKg: t.order.quantityKg,
+      pickupPin: t.order.pickupPin, dropPin: t.order.deliveryPin, distanceKm: t.distanceMetres / 1000, tierCode: t.tierCode, finalFreightPaise: t.finalFreightPaise, payoutPaise: t.baseCostPaise,
+      fundedAt: t.fundedAt, partner: t.partner ? (t.partner.companyName ?? t.partner.user.name) : null, vehicleRegNo: t.vehicle?.regNo ?? null, ewayBillNumber: t.ewayBillNumber,
+      acceptedAt: t.acceptedAt, pickedUpAt: t.pickedUpAt, deliveredAt: t.deliveredAt, podOtpVerified: t.podOtpVerified, slaDeadlineAt: t.order.slaDeadlineAt, createdAt: t.createdAt,
+    }));
+  }
+
   @Get('disputes') disputeList(@Query('status') s?: string) { return this.disputes.list(s); }
   @HttpCode(200) @Post('disputes/:id/resolve') resolve(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() d: ResolveDisputeDto) { return this.disputes.resolve(u, id, d); }
 

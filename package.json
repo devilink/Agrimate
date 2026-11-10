@@ -10,7 +10,7 @@
     "typecheck": "turbo run typecheck",
     "db:migrate": "pnpm --filter @agrimate/api exec prisma migrate deploy",
     "db:seed": "pnpm --filter @agrimate/api run seed",
-    "infra:up": "docker compose -f infra/docker-compose.yml up -d postgres redis minio minio-init",
+    "infra:up": "docker compose -f infra/docker-compose.yml up -d redis minio",
     "smoke": "node scripts/smoke-live.mjs",
     "gen:client": "pnpm --filter @agrimate/api run openapi && pnpm --filter @agrimate/api-client run generate"
   },
