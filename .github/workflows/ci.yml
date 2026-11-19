@@ -9,23 +9,6 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    services:
-      # The API suite wipes every table, so it only ever gets this throwaway database.
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_USER: agrimate
-          POSTGRES_PASSWORD: agrimate
-          POSTGRES_DB: agrimate_test
-        ports: ['5432:5432']
-        options: >-
-          --health-cmd "pg_isready -U agrimate -d agrimate_test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 20
-    env:
-      TEST_DATABASE_URL: postgresql://agrimate:agrimate@localhost:5432/agrimate_test
-      TEST_DIRECT_URL: postgresql://agrimate:agrimate@localhost:5432/agrimate_test
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4 # Version comes from packageManager in package.json.
@@ -37,7 +20,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm build
       - run: pnpm --filter @agrimate/shared test
-      - run: pnpm --filter @agrimate/api test
+      - run: pnpm --filter @agrimate/api test # Starts its own temporary Postgres.
       - name: Mobile logic tests
         run: |
           node --experimental-strip-types --test apps/app-inspector/scripts/grading.test.mts

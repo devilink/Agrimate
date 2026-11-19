@@ -2,53 +2,43 @@
 
 B2B agri-trade platform for India: bulk Buyers ↔ Farmers/FPOs, quality verified by Agri-Inspectors, produce moved by Logistics partners, money held in RBI-compliant escrow (Razorpay Smart Collect + Route).
 
-The database is hosted on Supabase. Apart from its two connection strings, the system runs locally with **zero API keys**: every other third-party integration sits behind an adapter with a working mock.
+Everything it stores lives on Supabase: Postgres for data and background jobs, Storage for files. No Docker, Redis or other service is needed. Payments, SMS, KYC, maps and market data each sit behind an adapter with a working mock, so the only keys you need to start are Supabase's.
 
 - [PLAN.md](./PLAN.md): architecture, data model, state machines, API surface
 - [DECISIONS.md](./DECISIONS.md): assumptions to confirm, compliance gaps, what isn't proven
 
 ## Run it
 
-### Database (Supabase)
+Requires Node 22+, pnpm 11 and a Supabase project, in Mumbai (`ap-south-1`) if your users are in India.
 
-Create a Supabase project, in Mumbai (`ap-south-1`) if your users are in India. From Dashboard > Connect > ORMs > Prisma, copy the two connection strings into `DATABASE_URL` and `DIRECT_URL` (see [.env.example](./.env.example)).
-
-Supabase's Data API is not used. The `lock_data_api` migration denies it access to every table, and you can also switch it off in the project's API settings.
-
-### Everything in Docker
+1. Copy the template: `cp .env.example apps/api/.env`
+2. From Dashboard > Connect > ORMs > Prisma, copy the two connection strings into `DATABASE_URL` and `DIRECT_URL`.
+3. In Storage > S3, turn on the S3 connection, create an access key, and fill in `S3_ENDPOINT` and `S3_PUBLIC_ENDPOINT` (the same URL), `S3_REGION`, `S3_ACCESS_KEY` and `S3_SECRET_KEY`. The API creates its private `agrimate` bucket on first start.
 
 ```bash
-cp .env.example .env              # then fill in DATABASE_URL and DIRECT_URL
-docker compose up --build
+pnpm install
+pnpm --filter @agrimate/shared build && pnpm --filter @agrimate/api-client build
+pnpm db:migrate && pnpm db:seed
+pnpm db:demo-history              # optional: about three months of sample orders for the dashboards
+pnpm dev                          # API + the three web portals
 ```
 
-Migrates and seeds on every start. This Compose file is the local demo stack: it runs in development mode with the demo logins below, so don't point it at a database with real users. The API image itself defaults to production, with no demo data. First build takes several minutes.
+In development the seed adds the demo logins below, which have published passwords, so use a project with no real users. `db:demo-history` runs real orders through the mock bank and refuses to run in production or against a real payment provider.
+
+Supabase's Data API is not used. The migrations deny it access to every table, and you can also switch it off in the project's API settings.
 
 | Service | URL |
 |---|---|
 | Landing page, buyer / farmer / transport sign-in, buyer portal | http://localhost:3000 |
 | Console sign-in (admin, quality verifier) | http://localhost:3000/adminagri (unlisted; redirects to :3001/adminagri) |
-| Admin / ops console | http://localhost:3001 |
+| Admin / ops console, with the live dashboard | http://localhost:3001 |
+| Trade network map | http://localhost:3001/network |
 | Farmer PWA | http://localhost:3002 |
 | API + Swagger | http://localhost:4000/docs |
-| MinIO console | http://localhost:9001 (`agrimate` / `agrimate-secret`) |
-
-### Local development
-
-Requires Node 22+, pnpm 11, Docker, a Supabase project.
-
-```bash
-pnpm install
-pnpm infra:up                     # Redis, MinIO
-cp .env.example apps/api/.env     # then fill in DATABASE_URL and DIRECT_URL
-pnpm --filter @agrimate/shared build && pnpm --filter @agrimate/api-client build
-pnpm db:migrate && pnpm db:seed
-pnpm dev                          # API + the three web portals
-```
 
 ### Mobile apps (Expo)
 
-The API must be running. A phone or emulator can't reach `localhost`, so point the app at your machine: `10.0.2.2` on the Android emulator, your LAN IP on a physical phone. Do the same for `S3_PUBLIC_ENDPOINT` on the API, or photo uploads will fail.
+The API must be running. A phone or emulator can't reach `localhost`, so point the app at your machine: `10.0.2.2` on the Android emulator, your LAN IP on a physical phone.
 
 ```bash
 cd apps/app-inspector    # or apps/app-logistics
@@ -86,20 +76,12 @@ OTP requests are limited to 5 per hour per phone.
 
 ## Tests
 
-The API suite **wipes every table in the database it connects to**, so give it a throwaway database and never the app's own. A disposable local Postgres is enough. Set these in your shell; the suite deliberately ignores `apps/api/.env`.
+The API suite **wipes every table in the database it connects to**. By default it starts its own temporary Postgres for the run and throws it away afterwards, so it needs no setup and can't touch your Supabase data. To test against a throwaway Supabase project instead, set `TEST_DATABASE_URL` and `TEST_DIRECT_URL`, and never point them at the app's own project.
 
 ```bash
-docker run -d --rm --name agrimate-test-db --tmpfs /var/lib/postgresql/data \
-  -e POSTGRES_USER=agrimate -e POSTGRES_PASSWORD=agrimate -e POSTGRES_DB=agrimate_test \
-  -p 127.0.0.1:15433:5432 postgres:17-alpine
-export TEST_DATABASE_URL='postgresql://agrimate:agrimate@localhost:15433/agrimate_test'
-export TEST_DIRECT_URL="$TEST_DATABASE_URL"
-# PowerShell: $env:TEST_DATABASE_URL='...'; $env:TEST_DIRECT_URL='...'
-pnpm infra:up
-
 pnpm --filter @agrimate/shared test   # pure money, pricing, state-machine and rule tests
-pnpm --filter @agrimate/api test      # Section 10 acceptance and domain suites, against real Postgres
-pnpm smoke                            # against a RUNNING stack: real MinIO uploads, BullMQ workers
+pnpm --filter @agrimate/api test      # acceptance, domain and analytics suites, against real Postgres
+pnpm smoke                            # against a RUNNING stack: real uploads to Supabase Storage, background jobs
 ```
 
 The API suite boots the real Nest app against real Postgres. Only the provider adapters are mocked, and time is driven through an injectable `Clock`. `pnpm smoke` covers what that suite mocks, and it's what caught a real bug in file permissions.
@@ -115,14 +97,14 @@ Each is one env var (see [.env.example](./.env.example)). An unknown value fails
 | SMS / OTP | `SMS_PROVIDER=twilio\|sns\|msg91` | Logged; OTP returned to the client | As named |
 | KYC / KYB | `KYC_PROVIDER=cashfree` | PAN starting `ZZZZZ` fails; bank account ending `0000` gives a name mismatch | Cashfree Verification |
 | Market data | `MARKET_DATA_PROVIDER=agmarknet` | Synthetic prices, not real | data.gov.in Agmarknet |
-| Files | `STORAGE_PROVIDER=s3` | In-memory, tests only | Any S3 API (MinIO locally) |
+| Files | `STORAGE_PROVIDER=s3` | In-memory, tests only | Supabase Storage through its S3 connection |
 
 **The real adapters have not been run against live accounts.** See DECISIONS.md section E for what to check first.
 
 ## Layout
 
 ```
-apps/api            NestJS monolith: REST + OpenAPI, BullMQ workers in-process
+apps/api            NestJS monolith: REST + OpenAPI, Postgres-driven jobs in-process
 apps/web-buyer      Next.js buyer portal
 apps/web-admin      Next.js ops console
 apps/pwa-farmer     Next.js PWA, vernacular (messages/*.json)
@@ -130,8 +112,7 @@ apps/app-inspector  Expo, camera + GPS
 apps/app-logistics  Expo, low-bandwidth with a retry queue
 packages/shared     Money, pricing, state machines, validators: pure and fully tested
 packages/api-client Generated OpenAPI types + typed fetch client
-packages/ui         Shared components
-infra/              Compose services and Dockerfiles
+packages/ui         Shared components, dashboards (`/viz`) and the network map (`/graph`)
 scripts/            Live smoke test
 ```
 
@@ -151,12 +132,12 @@ After changing an API route or DTO, run `pnpm gen:client`.
 
 ## Deployment notes
 
-- `NODE_ENV=production`, the API image's default, requires `JWT_SECRET`, `PII_ENCRYPTION_KEY` and `PII_HASH_KEY` (the API won't boot without them), turns on JSON logs, and disables the mock bank, time travel, OTP echo, demo seeding and `/docs` (`API_DOCS_ENABLED=true` turns it back on).
+- `NODE_ENV=production` requires `JWT_SECRET`, `PII_ENCRYPTION_KEY` and `PII_HASH_KEY` (the API won't boot without them), turns on JSON logs, and disables the mock bank, time travel, OTP echo, demo seeding and `/docs` (`API_DOCS_ENABLED=true` turns it back on).
 - First admin: set `ADMIN_PHONE`, `ADMIN_EMAIL` and `ADMIN_PASSWORD` for the first start. The seed creates that account, and won't touch it again. Remove the three variables afterwards.
-- Run one API instance to start with. BullMQ workers run in-process and are safe to scale, since jobs are idempotent and timers claim atomically. `sla-sweep` recovers any timers lost in a Redis outage.
+- Run one API instance to start with. Background jobs run in-process and are driven from Postgres. They are safe to scale: timers claim atomically and daily jobs claim one row per IST day, and a daily job missed during downtime runs when the API comes back.
 - Behind a load balancer: set `TRUST_PROXY_HOPS` to the number of proxies, so that per-IP rate limits see real client addresses. Leave it at 0 with no proxy, or clients can fake their IP.
 - `/metrics` needs `Authorization: Bearer <METRICS_TOKEN>`, and stays closed in production until that is set.
-- Portal images: build with `NEXT_PUBLIC_MOCK_TOOLS=false` (the default) and your real `NEXT_PUBLIC_*` URLs, which are fixed at build time.
+- Portal builds: build with `NEXT_PUBLIC_MOCK_TOOLS=false` (the default) and your real `NEXT_PUBLIC_*` URLs, which are fixed at build time.
 - Point Razorpay webhooks at `POST /api/v1/webhooks/razorpay`.
 - Back up Postgres. The ledger and event log are append-only and are your financial record. On Supabase, confirm that your plan's daily backups meet your retention needs, turn on point-in-time recovery for production, and test a restore into a separate project before launch.
 - The farmer PWA's camera and crypto APIs need HTTPS outside `localhost`.

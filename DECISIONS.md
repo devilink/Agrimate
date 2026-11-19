@@ -57,6 +57,7 @@ Orders snapshot commercial terms when created, so changing a value only affects 
 - **Grade specs** (moisture, size, foreign matter, etc.) for all 9 commodities are plausible placeholders, not AGMARK or FSSAI standards.
 - **Vehicle rates** (₹28, ₹38, ₹55, ₹70 per km) and the **₹1,000 loading fee** are placeholders.
 - **Mock market prices** are synthetic. They must never be presented as real.
+- **Sample history**: `pnpm db:demo-history` creates fabricated demo orders. Dashboards built on it show sample figures, so never run it on a database with real users.
 - **Assamese and Bengali translations** are machine-drafted and need native review, especially for a rural audience. Hindi should be checked too.
 
 ## E. Integrations: what is and isn't proven
@@ -68,6 +69,7 @@ Mock adapters are exercised by the full test suite. **Real adapters compile and 
 | Razorpay | Idempotency header name (`X-Razorpay-Idempotency` is an assumption); Route linked-account flow; `on_hold` transfers; refund fee behaviour; the reconciliation endpoint |
 | Cashfree KYC | Paths and field names; substituting another vendor only touches this adapter |
 | Agmarknet | Resource ID and whether `arrival_date` filtering works. **History**: this dataset is current-day, so 6-month charts fill up from the go-live date unless you backfill |
+| Supabase Storage | Signed browser uploads and multipart ETags. Supabase documents signed S3 URLs but S3 CORS settings are not available, so check a real browser upload, self-certification video included, and the project upload size limit |
 | Google Maps, Twilio, MSG91, SNS | Credentials and formats. SNS also needs `@aws-sdk/client-sns` added |
 
 ## F. Security limits worth knowing
@@ -82,8 +84,8 @@ Mock adapters are exercised by the full test suite. **Real adapters compile and 
 ## G. Engineering choices
 
 - **Nested git repo**: `E:/Code` is one large unrelated repo, so Agrimate has its own at `E:/Code/Files/Agrimate`. The parent sees it as an untracked folder.
-- **Pinned majors**: newer majors exist for Nest (12), BullMQ (6), Prisma (8 RC) and Next (16). I pinned Nest 11, BullMQ 5, Prisma 6, as the versions I can vouch for, and Next 15 as specified.
-- **MinIO image**: official `minio/minio` images are no longer anonymously pullable, so compose uses `cgr.dev/chainguard/minio`.
-- **`docker compose` location**: `docker-compose.yml` at the repo root includes `infra/docker-compose.yml`.
+- **Pinned majors**: newer majors exist for Nest (12), Prisma (8 RC) and Next (16). I pinned Nest 11, Prisma 6, as the versions I can vouch for, and Next 15 as specified.
+- **No Docker or Redis**: the only hosted dependency is Supabase. Jobs run in-process from Postgres (`JobClaim` guarantees one daily run). API tests start a temporary Postgres through `embedded-postgres`.
+- **Dashboards**: built on plain SVG and `d3-force`. The farmer app gets dials and a journey view only, with no network map, to stay light on rural connections. Buyers and farmers see names of their own counterparties only, never inspectors or transporters.
 - **Generated client**: request paths and bodies are generated from OpenAPI; response types are hand-written in `packages/api-client/src/views.ts`, because responses are role-scoped views. Those could drift from the API and aren't compiler-checked against it.
 - **`@scarf/scarf`** install telemetry (via swagger-ui) is blocked in `pnpm-workspace.yaml`.

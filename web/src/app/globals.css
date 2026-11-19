@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+/* Agrimate design tokens. Brand green for actions and identity, harvest gold as the accent, warm stone neutrals. */
+@theme inline {
+  --font-sans: var(--font-ui), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: var(--font-serif), ui-serif, Georgia, serif;
+
+  --color-brand-50: #eef7f1;
+  --color-brand-100: #d8ede0;
+  --color-brand-200: #b3dbc3;
+  --color-brand-300: #84c19f;
+  --color-brand-400: #55a07a;
+  --color-brand-500: #36845f;
+  --color-brand-600: #266a4b;
+  --color-brand-700: #1f563d;
+  --color-brand-800: #1b4533;
+  --color-brand-900: #17392b;
+  --color-brand-950: #0b2018;
+
+  --color-harvest-50: #fdf8ec;
+  --color-harvest-100: #faedc9;
+  --color-harvest-200: #f4d88f;
+  --color-harvest-300: #eebf56;
+  --color-harvest-400: #e8a72f;
+  --color-harvest-500: #d5871a;
+  --color-harvest-600: #b86713;
+  --color-harvest-700: #924b14;
+
+  --color-canvas: #f7f6f1;
+
+  --shadow-card: 0 1px 2px rgb(28 25 23 / 0.04), 0 1px 3px rgb(28 25 23 / 0.06);
+  --shadow-lift: 0 4px 6px -1px rgb(28 25 23 / 0.06), 0 12px 24px -6px rgb(28 25 23 / 0.10);
+
+  --animate-fade-in: fade-in 0.25s ease-out both;
+  --animate-shimmer: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes shimmer {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+:root { color-scheme: light; }
+
+html { -webkit-tap-highlight-color: transparent; }
+
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-stone-900);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01";
+}
+
+::selection { background: var(--color-brand-200); color: var(--color-brand-950); }
+
+a:focus-visible, button:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Native controls pick up the brand colour. */
+input[type="checkbox"], input[type="radio"] { accent-color: var(--color-brand-600); }
+input[type="file"]::file-selector-button {
+  margin-right: 0.75rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--color-brand-50);
+  color: var(--color-brand-800);
+  padding: 0.375rem 0.75rem;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+input[type="file"]::file-selector-button:hover { background: var(--color-brand-100); }
+
+select.select-chevron {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2378716c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px;
+}
+
+details > summary { list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
+
+/* Subtle field-row texture for brand panels. */
+.bg-furrows {
+  background-image: repeating-linear-gradient(-45deg, rgb(255 255 255 / 0.035) 0 2px, transparent 2px 14px);
+}
+
+.scrollbar-none { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

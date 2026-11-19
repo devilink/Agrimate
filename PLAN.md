@@ -7,7 +7,7 @@ B2B agri-trade platform: Buyers ↔ Farmers/FPOs, Agri-Inspectors, Logistics par
 
 ```
 apps/
-  api/            NestJS modular monolith (REST + OpenAPI, BullMQ workers in-process)
+  api/            NestJS modular monolith (REST + OpenAPI, Postgres-driven jobs in-process)
   web-buyer/      Next.js 15 buyer portal            :3000
   web-admin/      Next.js 15 ops console             :3001
   pwa-farmer/     Next.js 15 PWA (en/hi/as/bn)       :3002
@@ -17,7 +17,6 @@ packages/
   shared/         enums, money, pricing, grade helpers, name-match, validators, state machines, view types
   api-client/     generated OpenAPI types + typed fetch client
   ui/             shared Tailwind/shadcn-style components
-infra/            docker-compose, Dockerfiles, env templates
 ```
 
 API modules: `core` (prisma, clock, crypto, audit, config) · `auth` · `adapters` (payments, maps, market-data, sms, kyc,
@@ -136,11 +135,11 @@ Ledger is append-only and each journal sums to zero (enforced by a deferred DB c
 Backend is built in the prompt's phase order, with UI work following once the API contract is stable (all portals
 consume the same generated client). Each phase is committed separately.
 
-- [x] **1 Foundation** — monorepo, Docker, Nest skeleton, Prisma schema, auth, shared package, seed
+- [x] **1 Foundation** — monorepo, Nest skeleton, Prisma schema, auth, shared package, seed
 - [x] **2 Masters & onboarding** — commodity/grade, tiers, fee config, KYC/KYB/degree/vehicle flows, review queues
 - [x] **3 Marketplace** — RFQ, bids, listings, matching, phone unlock
 - [x] **4 Escrow & ledger** — Razorpay adapter + mock, VANs, webhooks, ledger, tranches, settlement, refunds, negative balance, reconciliation
-- [x] **5 SLA & inspection** — BullMQ timers, auto-assign, inspector flows, self-certification
+- [x] **5 SLA & inspection** — durable timers, auto-assign, inspector flows, self-certification
 - [x] **6 Logistics** — freight, booking, trips, E-Way bill, PoD, freight payout
 - [x] **7 Quality & disputes** — shrinkage guard, organic spot tests, dispute workflow
 - [x] **8 Market data** — Agmarknet adapter, daily cron, suggestions

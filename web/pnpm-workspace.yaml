@@ -1,0 +1,7 @@
+# Standalone: this folder is its own pnpm root, so Vercel installs only what the web app needs.
+packages:
+  - .
+allowBuilds:
+  sharp: true
+  unrs-resolver: true
+  '@tailwindcss/oxide': true

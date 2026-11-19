@@ -8,6 +8,7 @@ import { SessionGate, useSession } from '@/lib/session';
 
 const NAV = [
   { href: '/dashboard', label: 'Dashboard', exact: true },
+  { href: '/network', label: 'Supply network' },
   { href: '/rfqs/new', label: 'Post RFQ', exact: true },
   { href: '/rfqs', label: 'RFQs and bids', exact: true },
   { href: '/catalog', label: 'Catalog' },
@@ -25,23 +26,23 @@ function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:rounded focus:bg-white focus:p-2">Skip to content</a>
-      <aside className="sticky top-0 flex h-screen w-52 shrink-0 flex-col border-r border-slate-200 bg-white">
+      <aside className="sticky top-0 flex h-screen w-56 shrink-0 flex-col bg-[#022c22] text-emerald-50">
         <div className="px-4 py-4">
-          <p className="text-base font-semibold text-slate-900">Agrimate</p>
-          <p className="text-xs text-slate-500">Buyer portal</p>
+          <p className="text-base font-semibold text-white">Agrimate</p>
+          <p className="text-xs text-emerald-200/70">Buyer portal</p>
         </div>
         <nav aria-label="Main" className="flex-1 space-y-0.5 px-2">
           {NAV.map((n) => {
             const active = n.exact ? path === n.href : path.startsWith(n.href);
             return (
-              <Link key={n.href} href={n.href} aria-current={active ? 'page' : undefined} className={cn('block rounded-md px-3 py-2 text-sm', active ? 'bg-emerald-50 font-medium text-emerald-900' : 'text-slate-700 hover:bg-slate-100')}>
+              <Link key={n.href} href={n.href} aria-current={active ? 'page' : undefined} className={cn('block rounded-md px-3 py-2 text-sm', active ? 'bg-white/12 font-medium text-white' : 'text-emerald-100/75 hover:bg-white/8 hover:text-white')}>
                 {n.label}
               </Link>
             );
           })}
         </nav>
-        <div className="space-y-2 border-t border-slate-200 p-3">
-          <p className="truncate text-sm font-medium text-slate-900" title={me.buyer?.companyName ?? me.name}>{me.buyer?.companyName ?? me.name}</p>
+        <div className="space-y-2 border-t border-white/10 p-3">
+          <p className="truncate text-sm font-medium text-white" title={me.buyer?.companyName ?? me.name}>{me.buyer?.companyName ?? me.name}</p>
           <Badge tone={KYB_TONE[status] ?? 'slate'}>KYB: {humanise(status).toLowerCase()}</Badge>
           <Button variant="secondary" size="sm" className="w-full" onClick={() => void signOut()}>Sign out</Button>
         </div>

@@ -230,6 +230,14 @@ enum LedgerAccountType {
 
 
 // ---- Identity ----------------------------------------------------------------------------------------------------
+/// One row per daily job and IST day: inserting it is how a run claims that day.
+model JobClaim {
+  name      String
+  forDate   String
+  claimedAt DateTime @default(now())
+  @@id([name, forDate])
+}
+
 model User {
   id            String   @id @default(cuid())
   role          Role

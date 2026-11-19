@@ -59,3 +59,21 @@ export interface AvailableTrip { id: string; orderCode: string; commodity: strin
 export interface MyTrip { id: string; orderId: string; orderCode: string; orderState: string; status: string; commodity: string; quantityKg: number; pickupPin: string; pickupLat: number; pickupLng: number; dropPin: string; distanceKm: number; payoutPaise: Paise; vehicleRegNo?: string; ewayBillNumber: string | null; pickedUpAt: string | null; deliveredAt: string | null }
 export interface VehicleView { id: string; regNo: string; capacityKg: number; tier: VehicleTier }
 export interface CaptureSession { sessionId: string; captureToken: string; serverTime: string; expiresAt: string; kind: 'SCALE' | 'VEHICLE' }
+
+export interface RateDial { value: number | null; ok: number; sample: number }
+export interface AnalyticsRow { name: string; gmvPaise: Paise; orders: number }
+export interface AnalyticsSummary {
+  role: string; days: number; generatedAt: string;
+  kpis: { gmvPaise: Paise; previousGmvPaise: Paise; orders: number; previousOrders: number; quantityKg: number; activeOrders: number; escrowPaise: Paise; duePaise: Paise; receivedPaise: Paise; commissionPaise?: Paise };
+  dials: { slaOnTime: RateDial; qualityPass: RateDial; disputeFree: RateDial; completion: RateDial; payoutSuccess?: RateDial };
+  trend: { date: string; gmvPaise: Paise; orders: number }[];
+  pipeline: { key: string; label: string; states: string[]; count: number }[];
+  outcomes: { key: string; label: string; count: number }[];
+  split: { key: string; label: string; paise: Paise }[];
+  commodities: AnalyticsRow[];
+  regions: AnalyticsRow[];
+}
+export type GraphNodeType = 'BUYER' | 'FARMER' | 'COMMODITY' | 'STATE' | 'INSPECTOR' | 'TRANSPORTER';
+export interface KnowledgeGraphNode { id: string; type: GraphNodeType; label: string; gmvPaise: Paise; orderCount: number; flagged: boolean; orders: { id: string; code: string; state: string }[] }
+export interface KnowledgeGraphLink { source: string; target: string; kind: string; orderCount: number; gmvPaise: Paise }
+export interface KnowledgeGraphView { days: number; truncatedOrders: boolean; hiddenNodes: number; nodes: KnowledgeGraphNode[]; links: KnowledgeGraphLink[] }

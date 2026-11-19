@@ -4,9 +4,27 @@
   "private": true,
   "main": "src/index.tsx",
   "types": "src/index.tsx",
-  "exports": { ".": "./src/index.tsx" },
-  "scripts": { "typecheck": "tsc --noEmit" },
-  "dependencies": { "@agrimate/shared": "workspace:*" },
-  "peerDependencies": { "react": "^19" },
-  "devDependencies": { "@types/react": "^19.1.0", "react": "^19.1.0", "typescript": "^5.8.0" }
+  "exports": {
+    ".": "./src/index.tsx",
+    "./viz": "./src/viz.tsx",
+    "./graph": "./src/graph.tsx"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@agrimate/shared": "workspace:*",
+    "d3-force": "^3.0.1"
+  },
+  "peerDependencies": {
+    "next": "^15",
+    "react": "^19"
+  },
+  "devDependencies": {
+    "@types/d3-force": "^3.0.10",
+    "@types/react": "^19.1.0",
+    "next": "15.5.28",
+    "react": "^19.1.0",
+    "typescript": "^5.8.0"
+  }
 }

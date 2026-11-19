@@ -12,8 +12,8 @@ export class MarketDataService implements OnModuleInit {
   constructor(private readonly prisma: PrismaService, private readonly clock: Clock, private readonly jobs: JobsService, private readonly orders: OrdersService, @Inject(MARKET_DATA) private readonly adapter: MarketDataAdapter) {}
 
   onModuleInit() {
-    this.jobs.repeat('market-daily', () => this.ingest(), { pattern: '0 20 * * *' });
-    this.jobs.repeat('organic-expiry-daily', () => this.orders.expireOrganicCerts(), { pattern: '5 0 * * *' });
+    this.jobs.repeat('market-daily', () => this.ingest(), { dailyIst: { hour: 20, minute: 0 } });
+    this.jobs.repeat('organic-expiry-daily', () => this.orders.expireOrganicCerts(), { dailyIst: { hour: 0, minute: 5 } });
   }
 
   /** Idempotent per commodity + market + date, so a re-run just refreshes the numbers. */

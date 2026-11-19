@@ -18,7 +18,7 @@ export function Button({ variant = 'primary', size = 'md', className, ...p }: Re
   const sz = size === 'sm' ? 'h-8 px-3 text-sm' : size === 'lg' ? 'h-14 px-6 text-lg' : 'h-10 px-4 text-sm';
   return <button {...p} className={cn('inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-not-allowed', BTN[variant], sz, className)} />;
 }
-export const Card = ({ className, ...p }: React.HTMLAttributes<HTMLDivElement>) => <div {...p} className={cn('rounded-lg border border-slate-200 bg-white p-5 shadow-sm', className)} />;
+export const Card = ({ className, ...p }: React.HTMLAttributes<HTMLDivElement>) => <div {...p} className={cn('rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_2px_rgb(15_23_42/0.04)]', className)} />;
 export const CardTitle = ({ className, ...p }: React.HTMLAttributes<HTMLHeadingElement>) => <h2 {...p} className={cn('mb-3 text-base font-semibold text-slate-900', className)} />;
 const FIELD = 'h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-700 focus:outline-none focus:ring-1 focus:ring-emerald-700 disabled:bg-slate-100';
 export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(({ className, ...p }, r) => <input ref={r} {...p} className={cn(FIELD, className)} />);
@@ -70,7 +70,7 @@ export function Countdown({ to, className }: { to: string | null | undefined; cl
 }
 export function Table({ head, children, className }: { head: React.ReactNode[]; children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn('overflow-x-auto rounded-lg border border-slate-200 bg-white', className)}>
+    <div className={cn('overflow-x-auto rounded-xl border border-slate-200/80 bg-white', className)}>
       <table className="w-full text-left text-sm">
         <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-600"><tr>{head.map((h, i) => <th key={i} scope="col" className="px-4 py-2.5 font-medium">{h}</th>)}</tr></thead>
         <tbody className="divide-y divide-slate-100">{children}</tbody>

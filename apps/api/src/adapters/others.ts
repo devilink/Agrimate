@@ -206,7 +206,9 @@ export class S3Storage implements StorageAdapter {
   private readonly logger = new Logger('S3Storage');
   private client(endpoint?: string) {
     return new S3Client({
-      region: process.env.S3_REGION ?? 'ap-south-1', forcePathStyle: true, ...(endpoint ? { endpoint } : {}),
+      region: process.env.S3_REGION ?? 'ap-south-1', forcePathStyle: true,
+      // The SDK's default CRC32 parameters would become part of signed URLs, which S3-compatible stores such as Supabase may reject.
+      requestChecksumCalculation: 'WHEN_REQUIRED', responseChecksumValidation: 'WHEN_REQUIRED', ...(endpoint ? { endpoint } : {}),
       credentials: { accessKeyId: process.env.S3_ACCESS_KEY ?? 'agrimate', secretAccessKey: process.env.S3_SECRET_KEY ?? 'agrimate-secret' },
     });
   }

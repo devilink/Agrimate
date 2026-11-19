@@ -4,6 +4,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AdaptersModule } from './adapters/adapters.module';
 import { STORAGE, StorageAdapter } from './adapters/others';
 import { AdminController, AdminService, DevController, HealthController } from './admin/admin';
+import { AnalyticsController, AnalyticsService } from './analytics/analytics';
 import { AuthModule } from './auth/auth';
 import { CoreModule } from './core/core';
 import { EngineModule, JobsService, NotificationsService } from './engine/engine';
@@ -24,15 +25,15 @@ import { SettlementService } from './payments/settlement.service';
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
-    OrdersService, PaymentsService, SettlementService, InvoiceService, InspectionService, LogisticsService, DisputesService, MarketDataService, AdminService,
+    OrdersService, PaymentsService, SettlementService, InvoiceService, InspectionService, LogisticsService, DisputesService, MarketDataService, AdminService, AnalyticsService,
   ],
-  controllers: [MarketplaceController, OrdersController, QualityController, InspectionController, TripsController, WebhooksController, AdminController, HealthController, DevController],
+  controllers: [MarketplaceController, OrdersController, QualityController, InspectionController, TripsController, WebhooksController, AdminController, AnalyticsController, HealthController, DevController],
 })
 export class AppModule implements OnApplicationBootstrap {
   constructor(private readonly jobs: JobsService, private readonly notifications: NotificationsService, @Inject(STORAGE) private readonly storage: StorageAdapter) {}
   async onApplicationBootstrap() {
     this.jobs.repeat('outbox-flush', () => this.notifications.flush(), { every: 15_000 });
     await this.storage.init();
-    await this.jobs.startSchedules();
+    this.jobs.startSchedules();
   }
 }

@@ -23,7 +23,7 @@ export class SettlementService implements OnModuleInit {
     this.engine.register('SETTLE', ({ tx, order }) => this.settle(tx, order));
     this.engine.register('REFUND_ALL', ({ tx, order, transition }) => this.refundAll(tx, order, transition.from));
     this.engine.register('POST_DEFAULT_FEE', ({ tx, order, transition, payload }) => this.postDefaultFee(tx, order, transition.from, payload));
-    this.jobs.repeat('reconcile-daily', () => this.reconcile(), { pattern: '30 2 * * *' });
+    this.jobs.repeat('reconcile-daily', () => this.reconcile(), { dailyIst: { hour: 2, minute: 30 } });
   }
 
   // ---- Payouts -----------------------------------------------------------------------------------------------------

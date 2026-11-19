@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * End-to-end smoke test against a RUNNING stack (API + Postgres + Redis + MinIO) using seeded accounts.
+ * End-to-end smoke test against a RUNNING stack (API + Supabase database and storage) using seeded accounts.
  * Covers what the in-process test suite deliberately mocks: real signed-URL uploads, multipart, server re-hashing and the
- * BullMQ outbox worker. Runs Case 2 with external transport. Usage: `pnpm smoke` (API_URL overrides the target).
+ * background outbox job. Runs Case 2 with external transport. Usage: `pnpm smoke` (API_URL overrides the target).
  */
 import { createHash, randomBytes } from 'node:crypto';
 
@@ -95,7 +95,7 @@ ok(el.windowOpen && el.weightDisputeAllowed === false && el.discrepancyPercent =
 const final = await must(buyer, 'GET', `/orders/${order.id}`);
 ok(final.state === 'DISPUTE_WINDOW', 'order is in its dispute window');
 
-// The outbox worker runs every 15 s through BullMQ, so wait for it rather than calling it.
+// The outbox worker runs every 15 s in the background, so wait for it rather than calling it.
 const admin = (await must(null, 'POST', '/auth/login', { email: 'admin@agrimate.local', password: 'Admin@12345' })).accessToken;
 const accounts = await must(admin, 'GET', '/admin/ledger/accounts');
 ok(accounts.trialBalancePaise === '0', 'ledger trial balance is zero');
@@ -104,6 +104,6 @@ const metricsBefore = await (await fetch(`${API}/metrics`, metricsInit)).text();
 const pending = () => fetch(`${API}/metrics`, metricsInit).then((r) => r.text()).then((s) => Number(/agrimate_outbox_pending (\d+)/.exec(s)?.[1] ?? -1));
 let drained = false;
 for (let i = 0; i < 12 && !drained; i++) { if ((await pending()) === 0) drained = true; else await new Promise((r) => setTimeout(r, 3000)); }
-ok(drained, 'BullMQ worker drained the notification outbox', metricsBefore);
+ok(drained, 'background job drained the notification outbox', metricsBefore);
 
 console.log(`\n${passed} checks passed. Order ${order.code} left in DISPUTE_WINDOW; it auto-settles after 24 h.`);

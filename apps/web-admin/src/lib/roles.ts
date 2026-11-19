@@ -11,6 +11,7 @@ export const HOME: Record<ConsoleRole, string> = { ADMIN: '/', INSPECTOR: '/veri
 export const NAV: Record<ConsoleRole, { href: string; label: string }[]> = {
   ADMIN: [
     { href: '/', label: 'Overview' },
+    { href: '/network', label: 'Trade network' },
     { href: '/queues', label: 'Verification queues' },
     { href: '/orders', label: 'Orders' },
     { href: '/quality', label: 'Quality checks' },

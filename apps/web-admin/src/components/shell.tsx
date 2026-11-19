@@ -60,32 +60,32 @@ export function Shell({ children }: { children: ReactNode }) {
     <MeCtx.Provider value={me}>
       <div className="flex min-h-screen">
         <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-10 focus:rounded focus:bg-white focus:p-2 focus:text-sm">Skip to content</a>
-        <aside className="sticky top-0 flex h-screen w-56 shrink-0 flex-col border-r border-slate-200 bg-white">
-          <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-3">
-            <span aria-hidden className="grid h-8 w-8 place-items-center rounded-md bg-emerald-700 text-sm font-bold text-white">A</span>
+        <aside className="sticky top-0 flex h-screen w-56 shrink-0 flex-col bg-[#022c22] text-emerald-50">
+          <div className="flex items-center gap-2.5 px-4 py-4">
+            <span aria-hidden className="grid h-8 w-8 place-items-center rounded-lg bg-lime-300 text-sm font-bold text-emerald-950">A</span>
             <div>
-              <p className="text-sm font-semibold text-slate-900">Agrimate</p>
-              <p className="text-xs text-slate-500">{ROLE_LABEL[me.role]}</p>
+              <p className="text-sm font-semibold text-white">Agrimate</p>
+              <p className="text-xs text-emerald-200/70">{ROLE_LABEL[me.role]}</p>
             </div>
           </div>
           <nav aria-label="Main" className="flex-1 overflow-y-auto py-2">
-            <ul>
+            <ul className="space-y-0.5 px-2">
               {nav.map((n) => {
                 const active = n.href === home ? pathname === home : pathname === n.href || pathname.startsWith(`${n.href}/`);
                 return (
                   <li key={n.href}>
-                    <Link href={n.href} aria-current={active ? 'page' : undefined} className={cn('block border-l-2 px-4 py-1.5 text-sm', active ? 'border-emerald-700 bg-slate-50 font-medium text-slate-900' : 'border-transparent text-slate-700 hover:bg-slate-50')}>{n.label}</Link>
+                    <Link href={n.href} aria-current={active ? 'page' : undefined} className={cn('block rounded-lg px-3 py-2 text-sm transition-colors', active ? 'bg-white/12 font-medium text-white' : 'text-emerald-100/75 hover:bg-white/8 hover:text-white')}>{n.label}</Link>
                   </li>
                 );
               })}
             </ul>
           </nav>
-          <div className="border-t border-slate-200 p-3">
-            <p className="truncate text-xs text-slate-600" title={me.email ?? undefined}>{me.name}</p>
+          <div className="border-t border-white/10 p-3">
+            <p className="truncate text-xs text-emerald-100/80" title={me.email ?? undefined}>{me.name}</p>
             <Button variant="secondary" size="sm" className="mt-2 w-full" onClick={async () => { await api.logout(); goToLogin(); }}>Sign out</Button>
           </div>
         </aside>
-        <main id="main" className="min-w-0 flex-1 px-6 py-5">{children}</main>
+        <main id="main" className="min-w-0 flex-1 px-5 py-5 lg:px-7">{children}</main>
       </div>
     </MeCtx.Provider>
   );

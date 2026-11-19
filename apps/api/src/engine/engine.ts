@@ -5,8 +5,6 @@
  */
 import { ConflictException, ForbiddenException, Global, Inject, Injectable, Logger, Module, NotFoundException, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { LedgerAccountType, Order, Prisma, SlaTimerKind } from '@prisma/client';
-import { Queue, Worker } from 'bullmq';
-import IORedis from 'ioredis';
 import { Actor, AlertKind, checkTransition, Effect, GuardContext, ORDER_TRANSITIONS, OrderState, Transition } from '@agrimate/shared';
 import { SMS, SmsAdapter } from '../adapters/others';
 import { Clock, CryptoService, env, PrismaService, Tx } from '../core/core';
@@ -126,49 +124,55 @@ export class AlertsService {
   }
 }
 
-// ---- Jobs (BullMQ) -----------------------------------------------------------------------------------------------
-type JobHandler = (data: Record<string, unknown>) => Promise<unknown>;
+// ---- Jobs --------------------------------------------------------------------------------------------------------
+type JobHandler = () => Promise<unknown>;
+type JobSchedule = { every: number } | { dailyIst: { hour: number; minute: number } };
+const DAILY_CHECK_MS = 5 * 60_000;
+const IST_OFFSET_MS = 330 * 60_000;
 /**
- * BullMQ wrapper. Job handlers only ever act on durable DB state and are idempotent, so a duplicate or replayed job is
- * harmless. With QUEUES_ENABLED=false (tests) nothing connects to Redis and timers fire through SlaService.fireDue().
+ * Background work, driven from Postgres so that nothing beyond the database is needed. Every handler acts on durable,
+ * idempotent DB state. A slow run is never overlapped by the next tick. Daily jobs claim a row per job and IST day, so
+ * they run once across instances and still run after downtime. JOBS_ENABLED=false (tests) leaves all of this to the test.
  */
 @Injectable()
-export class JobsService implements OnModuleInit, OnModuleDestroy {
+export class JobsService implements OnModuleDestroy {
   private readonly logger = new Logger('Jobs');
-  private readonly handlers = new Map<string, JobHandler>();
-  private readonly repeatables: { name: string; every?: number; pattern?: string }[] = [];
-  private connection?: IORedis; private queue?: Queue; private worker?: Worker;
+  private readonly jobs: { name: string; handler: JobHandler; schedule: JobSchedule }[] = [];
+  private readonly intervals: NodeJS.Timeout[] = [];
+  constructor(private readonly prisma: PrismaService, private readonly clock: Clock) {}
 
-  on(name: string, h: JobHandler) { this.handlers.set(name, h); }
-  /** Interval job (ms) or cron job (evaluated in IST). */
-  repeat(name: string, h: JobHandler, schedule: { every?: number; pattern?: string }) { this.on(name, h); this.repeatables.push({ name, ...schedule }); }
+  repeat(name: string, handler: JobHandler, schedule: JobSchedule) { this.jobs.push({ name, handler, schedule }); }
 
-  async onModuleInit() {
-    if (!env.queuesEnabled) return;
-    this.connection = new IORedis(env.redisUrl, { maxRetriesPerRequest: null });
-    this.connection.on('error', (e) => this.logger.warn(`Redis: ${e.message}`));
-    this.queue = new Queue('agrimate', { connection: this.connection });
-    this.worker = new Worker('agrimate', async (job) => {
-      const h = this.handlers.get(job.name);
-      if (!h) throw new Error(`No handler for job ${job.name}`);
-      return h(job.data as Record<string, unknown>);
-    }, { connection: this.connection, concurrency: 5 });
-    this.worker.on('failed', (job, err) => this.logger.error(`Job ${job?.name} failed: ${err.message}`));
-  }
   /** Called after every module has registered its handlers. */
-  async startSchedules() {
-    if (!this.queue) return;
-    for (const r of this.repeatables) {
-      await this.queue.upsertJobScheduler(r.name, r.every ? { every: r.every } : { pattern: r.pattern!, tz: 'Asia/Kolkata' }, { name: r.name, opts: { removeOnComplete: 50, removeOnFail: 200 } });
+  startSchedules() {
+    if (!env.jobsEnabled) return;
+    for (const job of this.jobs) {
+      const { schedule } = job;
+      let running = false;
+      const tick = async () => {
+        if (running) return;
+        running = true;
+        try { await ('every' in schedule ? job.handler() : this.runDailyIfDue(job.name, job.handler, schedule.dailyIst)); }
+        catch (e) { this.logger.error(`Job ${job.name} failed: ${(e as Error).message}`); }
+        finally { running = false; }
+      };
+      this.intervals.push(setInterval(() => void tick(), 'every' in schedule ? schedule.every : DAILY_CHECK_MS));
+      void tick();
     }
   }
-  async at(name: string, data: Record<string, unknown>, fireAt: Date, jobId: string, now: Date) {
-    if (!this.queue) return;
-    await this.queue.add(name, data, { jobId, delay: Math.max(0, fireAt.getTime() - now.getTime()), attempts: 5, backoff: { type: 'exponential', delay: 5000 }, removeOnComplete: 100, removeOnFail: 500 });
+
+  /** The row is released if the job fails, so that it is tried again at the next check rather than lost for the day. */
+  async runDailyIfDue(name: string, handler: JobHandler, at: { hour: number; minute: number }) {
+    const ist = new Date(this.clock.now().getTime() + IST_OFFSET_MS);
+    if (ist.getUTCHours() * 60 + ist.getUTCMinutes() < at.hour * 60 + at.minute) return false;
+    const forDate = ist.toISOString().slice(0, 10);
+    const claim = await this.prisma.jobClaim.createMany({ data: [{ name, forDate }], skipDuplicates: true });
+    if (claim.count === 0) return false;
+    try { await handler(); return true; }
+    catch (e) { await this.prisma.jobClaim.delete({ where: { name_forDate: { name, forDate } } }); throw e; }
   }
-  async onModuleDestroy() {
-    await this.worker?.close(); await this.queue?.close(); this.connection?.disconnect();
-  }
+
+  onModuleDestroy() { this.intervals.forEach(clearInterval); }
 }
 
 // ---- Durable timers ------------------------------------------------------------------------------------------------
@@ -177,14 +181,12 @@ export type TimerHandler = (tx: Tx, order: Order, kind: SlaTimerKind) => Promise
 export class TimerService {
   private readonly logger = new Logger('Timers');
   private readonly handlers = new Map<SlaTimerKind, TimerHandler>();
-  constructor(private readonly prisma: PrismaService, private readonly clock: Clock, private readonly jobs: JobsService) {}
+  constructor(private readonly prisma: PrismaService, private readonly clock: Clock) {}
   onFire(kind: SlaTimerKind, h: TimerHandler) { this.handlers.set(kind, h); }
 
-  /** The DB row is the source of truth; the BullMQ delayed job is just the prompt wake-up. */
+  /** The row is the whole timer: the sla-sweep job fires it within seconds of falling due. */
   async schedule(tx: Tx, orderId: string, kind: SlaTimerKind, fireAt: Date) {
-    const t = await tx.slaTimer.create({ data: { orderId, kind, fireAt } });
-    await this.jobs.at('sla-timer', { timerId: t.id }, fireAt, t.id, this.clock.now());
-    return t;
+    return tx.slaTimer.create({ data: { orderId, kind, fireAt } });
   }
   cancelAll(tx: Tx, orderId: string, kinds?: SlaTimerKind[]) {
     return tx.slaTimer.updateMany({ where: { orderId, status: 'PENDING', ...(kinds ? { kind: { in: kinds } } : {}) }, data: { status: 'CANCELLED' } });
@@ -199,7 +201,7 @@ export class TimerService {
       return true;
     });
   }
-  /** Sweep: catches anything whose delayed job was lost, e.g. after a Redis restart. */
+  /** Runs on a short interval. Each timer claims itself, so overlapping sweeps can't double-fire one. */
   async fireDue(limit = 200): Promise<number> {
     const due = await this.prisma.slaTimer.findMany({ where: { status: 'PENDING', fireAt: { lte: this.clock.now() } }, orderBy: { fireAt: 'asc' }, take: limit });
     let fired = 0;

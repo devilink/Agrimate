@@ -40,8 +40,7 @@ export const env = {
   get kycProvider() { return process.env.KYC_PROVIDER ?? 'mock'; },
   get marketProvider() { return process.env.MARKET_DATA_PROVIDER ?? 'mock'; },
   get storageProvider() { return process.env.STORAGE_PROVIDER ?? 's3'; },
-  get queuesEnabled() { return (process.env.QUEUES_ENABLED ?? 'true') !== 'false'; },
-  get redisUrl() { return process.env.REDIS_URL ?? 'redis://localhost:6379'; },
+  get jobsEnabled() { return (process.env.JOBS_ENABLED ?? 'true') !== 'false'; },
   /** Dev helpers (returning OTPs, the mock bank) exist only while the matching provider is mocked AND not in production. */
   get devToolsEnabled() { return !PROD && this.paymentProvider === 'mock'; },
   get exposeDevOtp() { return !PROD && this.smsProvider === 'mock'; },

@@ -25,8 +25,7 @@ export class InspectionService implements OnModuleInit {
     this.timers.onFire('INSPECTOR_RETRY', (tx, o) => this.retryAssign(tx, o));
     this.timers.onFire('SELF_CERT_FALLBACK', (tx, o) => this.onFallback(tx, o));
     this.timers.onFire('DISPUTE_WINDOW_END', (tx, o) => this.onWindowEnd(tx, o));
-    this.jobs.on('sla-timer', (d) => this.timers.fire(d.timerId as string));
-    this.jobs.repeat('sla-sweep', () => this.timers.fireDue(), { every: 30_000 });
+    this.jobs.repeat('sla-sweep', () => this.timers.fireDue(), { every: 15_000 });
   }
 
   // ---- SLA -----------------------------------------------------------------------------------------------------
