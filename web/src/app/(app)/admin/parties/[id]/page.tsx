@@ -7,8 +7,10 @@ import { STATUS_LABEL } from '@/lib/orders';
 import { createLoginForParty, updateParty } from '@/app/actions/admin';
 import { ActionForm, Submit } from '@/components/action-form';
 import { PartyFormFields } from '@/components/party-form-fields';
-import { Badge, Card, Checkbox, Empty, Field, Input, PageHeader, statusTone } from '@/components/ui';
-import { IconLock, IconPackage, IconUser } from '@/components/icons';
+import { TrustBadges } from '@/components/trust';
+import { Badge, Card, Checkbox, Dl, Empty, Field, Input, PageHeader, statusTone } from '@/components/ui';
+import { IconLock, IconPackage, IconShield, IconUser } from '@/components/icons';
+import { CHECKLIST, TRUSTED_MIN_TRADES, trustLevel } from '@/lib/trust';
 import type { Order, Party, PartyPrivate } from '@/lib/types';
 
 const UUID = /^[0-9a-f-]{36}$/i;
@@ -23,10 +25,15 @@ export default async function PartyPage({ params }: { params: Promise<{ id: stri
     supabase.from('party_private').select('*').eq('party_id', id).maybeSingle(),
     supabase.from('orders').select('*')
       .or(`buyer_id.eq.${id},farmer_id.eq.${id},transporter_id.eq.${id},inspector_id.eq.${id}`)
-      .order('created_at', { ascending: false }).limit(50),
+      .order('created_at', { ascending: false }).limit(500),
   ]);
   if (!p) notFound();
   const party = p as Party;
+  const list = (orders ?? []) as Order[];
+  const asTrader = list.filter((o) => o.buyer_id === id || o.farmer_id === id);
+  const completedValue = asTrader.filter((o) => o.status === 'completed').reduce((s, o) => s + Number(o.goods_paise), 0);
+  const openOrders = list.filter((o) => !['completed', 'cancelled'].includes(o.status)).length;
+  const disputes = list.filter((o) => o.status === 'disputed').length;
 
   return (
     <>
@@ -44,6 +51,12 @@ export default async function PartyPage({ params }: { params: Promise<{ id: stri
               <Checkbox name="verified" defaultChecked={party.verified} label="Verified" hint="Can list, offer and buy" />
               <Checkbox name="active" defaultChecked={party.active} label="Active" hint="Unticking blocks their login" />
             </div>
+            <fieldset>
+              <legend className="mb-3 text-sm font-semibold text-stone-900">Verification checklist <span className="font-normal text-stone-500">· shown to members as badges</span></legend>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {CHECKLIST.map((c) => <Checkbox key={c.key} name={c.key} defaultChecked={party[c.key]} label={c.label} hint={c.hint} />)}
+              </div>
+            </fieldset>
             <Submit>Save</Submit>
           </ActionForm>
         </Card>
@@ -60,10 +73,21 @@ export default async function PartyPage({ params }: { params: Promise<{ id: stri
               </ActionForm>
             )}
           </Card>
+          <Card title="Trust and trade" icon={<IconShield />} action={<TrustBadges party={party} />}>
+            <Dl items={[
+              ['Completed trades', String(party.completed_trades)],
+              ['Open orders', String(openOrders)],
+              [party.type === 'buyer' ? 'Bought (completed)' : party.type === 'farmer' ? 'Sold (completed)' : 'Completed value', rupees(completedValue)],
+              ['Disputes', String(disputes)],
+            ]} />
+            <p className="mt-4 text-xs text-stone-500">
+              {trustLevel(party) === 'trusted' ? 'Shown as a Trusted trader.' : `Trusted traders need the full checklist and ${TRUSTED_MIN_TRADES}+ completed trades.`}
+            </p>
+          </Card>
           <Card title="Orders" icon={<IconPackage />}>
             {(orders ?? []).length === 0 ? <Empty>No orders.</Empty> : (
               <ul className="-mx-2 text-sm">
-                {(orders as Order[]).map((o) => (
+                {list.slice(0, 50).map((o) => (
                   <li key={o.id}>
                     <Link href={`/orders/${o.id}`} className="flex items-center justify-between gap-2 rounded-lg px-2 py-2 hover:bg-stone-50">
                       <span className="font-mono text-[0.8125rem] font-semibold text-brand-700">{o.code}</span>

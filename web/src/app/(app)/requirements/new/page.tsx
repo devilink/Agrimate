@@ -5,6 +5,7 @@ import { createRequirement } from '@/app/actions/market';
 import { ActionForm, Submit } from '@/components/action-form';
 import { CommodityFields } from '@/components/commodity-fields';
 import { PartySelect } from '@/components/party-select';
+import { PriceField, QuantityField } from '@/components/unit-fields';
 import { Card, Field, Input, Notice, PageHeader, Textarea } from '@/components/ui';
 
 export const metadata = { title: 'Post a requirement' };
@@ -23,8 +24,8 @@ export default async function NewRequirementPage() {
           {viewer.isAdmin && <PartySelect parties={buyers} label="Buyer (posting on their behalf)" />}
           <CommodityFields commodities={commodities} />
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Quantity needed (kg)"><Input name="quantity_kg" type="number" min={1} step={1} required /></Field>
-            <Field label="Target price per kg (₹)" hint="Optional"><Input name="target_price" inputMode="decimal" /></Field>
+            <QuantityField label="Quantity needed" />
+            <PriceField label="Target price" hint="Optional. Leave empty to invite offers." required={false} />
             <Field label="Delivery location"><Input name="delivery_location" maxLength={200} /></Field>
             <Field label="Delivery PIN code"><Input name="pin" inputMode="numeric" pattern="[1-9][0-9]{5}" maxLength={6} /></Field>
             <Field label="Needed by"><Input name="needed_by" type="date" /></Field>

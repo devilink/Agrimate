@@ -11,13 +11,14 @@ import {
 } from '@/app/actions/orders';
 import { ActionForm, Submit } from '@/components/action-form';
 import { DocumentUpload } from '@/components/document-upload';
+import { FreightInput } from '@/components/freight-input';
 import { PartySelect } from '@/components/party-select';
 import { PayButton } from '@/components/pay-button';
 import { Badge, Card, Checkbox, Dl, Empty, Field, Input, Notice, PageHeader, Select, Textarea, cx, statusTone } from '@/components/ui';
 import {
   IconCheck, IconClipboardCheck, IconFile, IconMessage, IconPackage, IconRefresh, IconTruck, IconUsers, IconWallet,
 } from '@/components/icons';
-import type { DocumentRow, Order, OrderEvent, OrderStatus, Party, PartyPrivate, Payment } from '@/lib/types';
+import type { DocumentRow, Order, OrderEvent, OrderStatus, Party, PartyPrivate, Payment, VehicleRate } from '@/lib/types';
 
 const UUID = /^[0-9a-f-]{36}$/i;
 
@@ -55,13 +56,16 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   let contacts: PartyPrivate[] = [];
   let transporters: Party[] = [];
   let inspectors: Party[] = [];
+  let vehicles: VehicleRate[] = [];
   if (isAdmin) {
     const ids = [order.buyer_id, order.farmer_id, order.transporter_id, order.inspector_id].filter(Boolean) as string[];
-    const [c, tr, ins] = await Promise.all([
+    const [c, tr, ins, vr] = await Promise.all([
       supabase.from('party_private').select('*').in('party_id', ids),
       getPartiesOfType('transporter'),
       getPartiesOfType('inspector'),
+      supabase.from('vehicle_rates').select('*').eq('active', true).order('capacity_kg'),
     ]);
+    vehicles = (vr.data ?? []) as VehicleRate[];
     contacts = (c.data ?? []) as PartyPrivate[];
     transporters = tr;
     inspectors = ins;
@@ -153,9 +157,10 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                 <PartySelect parties={transporters} label="Transporter" name="transporter_id" required={false} defaultValue={order.transporter_id ?? ''} />
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label="Vehicle number"><Input name="vehicle_no" defaultValue={order.vehicle_no ?? ''} maxLength={20} /></Field>
-                  <Field label="Freight charged to buyer (₹)"><Input name="freight" inputMode="decimal" defaultValue={order.freight_paise ? order.freight_paise / 100 : ''} /></Field>
+
                   <Field label="Driver name"><Input name="driver_name" defaultValue={order.driver_name ?? ''} maxLength={80} /></Field>
                   <Field label="Driver phone"><Input name="driver_phone" type="tel" defaultValue={order.driver_phone ?? ''} maxLength={20} /></Field>
+                  <FreightInput vehicles={vehicles} quantityKg={order.quantity_kg} defaultRupees={order.freight_paise ? String(order.freight_paise / 100) : ''} />
                 </div>
                 <Submit variant="secondary" small>Save transport</Submit>
               </ActionForm>

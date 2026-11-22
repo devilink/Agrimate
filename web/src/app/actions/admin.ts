@@ -4,7 +4,8 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin, type Viewer } from '@/lib/auth';
 import { adminClient } from '@/lib/supabase/admin';
-import { check, fail, pin, required, run, text, uuid, type ActionState } from '@/lib/action';
+import { check, date, fail, pin, required, run, text, uuid, type ActionState } from '@/lib/action';
+import { toPaise } from '@/lib/money';
 import type { PartyType } from '@/lib/types';
 import { privateFields } from '@/lib/party-fields';
 
@@ -52,7 +53,15 @@ export async function updateParty(_: ActionState, form: FormData): Promise<Actio
     const db = adminClient();
     const { data: before } = await db.from('parties').select('verified, active').eq('id', id).maybeSingle();
     if (!before) fail('Not found.');
-    const changes = { ...publicFields(form), verified: form.get('verified') === 'on', active: form.get('active') === 'on' };
+    const changes = {
+      ...publicFields(form),
+      verified: form.get('verified') === 'on',
+      active: form.get('active') === 'on',
+      kyc_verified: form.get('kyc_verified') === 'on',
+      gst_verified: form.get('gst_verified') === 'on',
+      bank_verified: form.get('bank_verified') === 'on',
+      is_fpo: form.get('is_fpo') === 'on',
+    };
     check(await db.from('parties').update(changes).eq('id', id));
     check(await db.from('party_private').upsert({
       party_id: id, ...priv, admin_notes: text(form, 'admin_notes', 2000), updated_at: new Date().toISOString(),
@@ -60,6 +69,7 @@ export async function updateParty(_: ActionState, form: FormData): Promise<Actio
     await audit(viewer, 'party.update', 'party', id, {
       verified: before.verified !== changes.verified ? changes.verified : undefined,
       active: before.active !== changes.active ? changes.active : undefined,
+      checklist: { kyc: changes.kyc_verified, gst: changes.gst_verified, bank: changes.bank_verified, fpo: changes.is_fpo },
     });
     revalidatePath(`/admin/parties/${id}`);
     revalidatePath('/admin/parties');
@@ -153,6 +163,84 @@ export async function saveCommodity(_: ActionState, form: FormData): Promise<Act
       if (error) throw error;
     }
     await audit(viewer, 'commodity.save', 'commodity', typeof idRaw === 'string' ? idRaw || null : null, row);
+    revalidatePath('/admin/settings');
+    return 'Saved.';
+  });
+}
+
+// ---- Reference market prices --------------------------------------------------------------------------------------
+
+/** Rupees per quintal as typed (mandis quote this unit) -> paise per kg, which is the same number. */
+function perQuintal(form: FormData, name: string, label: string, isRequired: boolean): number | null {
+  const raw = form.get(name);
+  if (!isRequired && (raw === null || raw === '')) return null;
+  const paise = toPaise(raw) ?? fail(`${label} must be a price in rupees per quintal.`);
+  if (paise % 100 !== 0) fail(`${label}: enter whole rupees per quintal.`); // stored as paise per kg
+  return paise / 100;
+}
+
+export async function saveMarketPrice(_: ActionState, form: FormData): Promise<ActionState> {
+  return run(async () => {
+    const viewer = await requireAdmin();
+    const commodity_id = uuid(form, 'commodity_id');
+    const price_date = date(form, 'price_date') ?? fail('Enter the date of the price.');
+    if (price_date > new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })) fail('The price date cannot be in the future.');
+    const row = {
+      commodity_id,
+      market: required(form, 'market', 'Market / mandi', 120),
+      state: text(form, 'state', 80),
+      price_date,
+      min_paise_per_kg: perQuintal(form, 'min', 'Minimum', false),
+      modal_paise_per_kg: perQuintal(form, 'modal', 'Modal price', true)!,
+      max_paise_per_kg: perQuintal(form, 'max', 'Maximum', false),
+      source: text(form, 'source', 120),
+      created_by: viewer.userId,
+    };
+    if (row.min_paise_per_kg !== null && row.min_paise_per_kg > row.modal_paise_per_kg) fail('Minimum cannot be above the modal price.');
+    if (row.max_paise_per_kg !== null && row.max_paise_per_kg < row.modal_paise_per_kg) fail('Maximum cannot be below the modal price.');
+    // One price per commodity, market and day: entering it again corrects it.
+    check(await adminClient().from('market_prices').upsert(row, { onConflict: 'commodity_id,market,price_date' }));
+    await audit(viewer, 'price.save', 'market_price', null, { commodity_id, market: row.market, price_date, modal: row.modal_paise_per_kg });
+    revalidatePath('/admin/prices');
+    revalidatePath('/prices');
+    return 'Price saved.';
+  });
+}
+
+export async function deleteMarketPrice(_: ActionState, form: FormData): Promise<ActionState> {
+  return run(async () => {
+    const viewer = await requireAdmin();
+    const id = uuid(form, 'id');
+    check(await adminClient().from('market_prices').delete().eq('id', id));
+    await audit(viewer, 'price.delete', 'market_price', id);
+    revalidatePath('/admin/prices');
+    revalidatePath('/prices');
+    return 'Deleted.';
+  });
+}
+
+// ---- Freight rate card --------------------------------------------------------------------------------------------
+
+export async function saveVehicleRate(_: ActionState, form: FormData): Promise<ActionState> {
+  return run(async () => {
+    const viewer = await requireAdmin();
+    const capacityT = Number(form.get('capacity_t'));
+    if (!Number.isFinite(capacityT) || capacityT <= 0 || capacityT > 60) fail('Capacity must be between 0 and 60 tonnes.');
+    const row = {
+      name: required(form, 'name', 'Vehicle', 80),
+      capacity_kg: Math.round(capacityT * 1000),
+      rate_paise_per_km: toPaise(form.get('rate_per_km')) ?? fail('Enter the rate per km in rupees.'),
+      min_charge_paise: form.get('min_charge') ? toPaise(form.get('min_charge')) ?? fail('Enter the minimum charge in rupees.') : 0,
+      active: form.get('active') !== 'off',
+    };
+    const db = adminClient();
+    const idRaw = form.get('id');
+    const { error } = typeof idRaw === 'string' && idRaw
+      ? await db.from('vehicle_rates').update(row).eq('id', uuid(form, 'id'))
+      : await db.from('vehicle_rates').insert(row);
+    if (error?.code === '23505') fail('A vehicle with that name already exists.');
+    if (error) throw error;
+    await audit(viewer, 'vehicle_rate.save', 'vehicle_rate', typeof idRaw === 'string' ? idRaw || null : null, row);
     revalidatePath('/admin/settings');
     return 'Saved.';
   });

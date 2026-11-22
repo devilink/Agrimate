@@ -37,7 +37,19 @@ export async function POST(req: NextRequest) {
   });
   if (error) {
     console.error('[razorpay webhook]', error);
-    // 500 makes Razorpay retry later.
+    // Raised on purpose by record_razorpay_payment (e.g. amount mismatch): retrying can never succeed, so answer 200
+    // and leave a note for the team instead of letting Razorpay retry for days.
+    if (error.code === 'P0001') {
+      const { data: ro } = await db.from('razorpay_orders').select('order_id').eq('id', payment.order_id).maybeSingle();
+      if (ro) {
+        await db.from('order_events').insert({
+          order_id: ro.order_id, kind: 'payment', visibility: 'admin', actor_label: 'Razorpay',
+          message: `Online payment ${payment.id} could not be recorded automatically: ${error.message}. Check it in the Razorpay dashboard.`,
+        });
+      }
+      return NextResponse.json({ ignored: 'not recordable' });
+    }
+    // Anything else (database unreachable, etc.) is temporary: 500 makes Razorpay retry later.
     return NextResponse.json({ error: 'could not record' }, { status: 500 });
   }
   return NextResponse.json({ ok: true });

@@ -1,4 +1,4 @@
-// Runs supabase/migrations/0001_init.sql against a THROWAWAY local Postgres (never your Supabase project) with
+// Runs every file in supabase/migrations (in order) against a THROWAWAY local Postgres (never your Supabase project) with
 // minimal stand-ins for Supabase's auth/storage schemas and roles, then checks the security model.
 //
 //   TEST_PG_URL=postgres://postgres@localhost:5432/postgres pnpm test:db
@@ -11,7 +11,7 @@ const { Client } = require('pg');
 const BASE = process.env.TEST_PG_URL;
 if (!BASE) { console.error('Set TEST_PG_URL to a local, disposable Postgres server.'); process.exit(2); }
 if (/supabase\.(co|com)/.test(BASE)) { console.error('Refusing to run against Supabase. Use a local Postgres.'); process.exit(2); }
-const MIGRATION = path.join(__dirname, '..', 'migrations', '0001_init.sql');
+const MIGRATIONS = path.join(__dirname, '..', 'migrations');
 const testUrl = () => { const u = new URL(BASE); u.pathname = '/agrimate_test'; return u.toString(); };
 
 const SUPA = `
@@ -39,8 +39,10 @@ function ok(cond, name, extra = '') { if (cond) { pass++; console.log('  ok   ',
   const db = new Client({ connectionString: testUrl() });
   await db.connect();
   await db.query(SUPA);
-  await db.query(fs.readFileSync(MIGRATION, 'utf8'));
-  console.log('migration applied');
+  for (const f of fs.readdirSync(MIGRATIONS).filter((n) => n.endsWith('.sql')).sort()) {
+    await db.query(fs.readFileSync(path.join(MIGRATIONS, f), 'utf8'));
+    console.log('applied', f);
+  }
 
   const q = (s, p) => db.query(s, p).then((r) => r.rows);
   const as = async (uid, fn) => {
@@ -180,7 +182,135 @@ function ok(cond, name, extra = '') { if (cond) { pass++; console.log('  ok   ',
   const flag = await q(`select visibility from public.order_events where order_id = $1 and message like 'OVERPAID%'`, [orderId]);
   ok(flag.length === 1 && flag[0].visibility === 'admin', 'overpayment flagged with an admin-only event');
 
-  console.log(`\n${pass} passed, ${failN} failed`);
+  // ================= 0002: pausing, minimum orders, negotiation, trust, finance =================
+  let L2, offerA, offerB;
+  await asService(async () => {
+    [{ id: L2 }] = await q(`insert into public.listings (farmer_id, commodity_id, quantity_kg, price_paise_per_kg, min_order_kg) values ($1,$2,5000,2600,1000) returning id`, [F.party, comm.id]);
+    [{ id: offerA }] = await q(`insert into public.offers (listing_id, party_id, quantity_kg, price_paise_per_kg, message) values ($1,$2,2000,2400,'opening') returning id`, [L2, Bp.party]);
+  });
+  const [oa] = await q(`select last_by from public.offers where id = $1`, [offerA]);
+  ok(oa.last_by === Bp.party, 'a new offer starts with the offerer holding the terms');
+  const firstMsg = await q(`select kind, message from public.offer_messages where offer_id = $1`, [offerA]);
+  ok(firstMsg.length === 1 && firstMsg[0].kind === 'offer' && firstMsg[0].message === 'opening', 'a new offer writes its opening message');
+
+  const ownTurn = await throws(() => asService(() => q(`select public.counter_offer($1,$2,2000,2450,null,null)`, [offerA, Bp.party])));
+  ok(ownTurn && /Wait for the other side/.test(ownTurn), 'a party cannot counter its own terms');
+  const outsider = await throws(() => asService(() => q(`select public.counter_offer($1,$2,2000,2450,null,null)`, [offerA, O.party])));
+  ok(outsider && /not part of this negotiation/.test(outsider), 'an outsider cannot counter');
+  const belowMoq = await throws(() => asService(() => q(`select public.counter_offer($1,$2,500,2500,null,null)`, [offerA, F.party])));
+  ok(belowMoq && /minimum order/.test(belowMoq), 'a counter below the minimum order is refused');
+  await asService(() => q(`select public.counter_offer($1,$2,3000,2500,'meet halfway',null)`, [offerA, F.party]));
+  const [oa2] = await q(`select quantity_kg, price_paise_per_kg, last_by, counters from public.offers where id = $1`, [offerA]);
+  ok(oa2.quantity_kg === 3000 && Number(oa2.price_paise_per_kg) === 2500 && oa2.last_by === F.party && oa2.counters === 1, 'a counter updates the current terms and passes the turn');
+
+  // Pausing hides the listing from others and blocks acceptance
+  await q(`update public.listings set paused = true where id = $1`, [L2]);
+  await as(otherU.id, async () => ok((await q(`select id from public.listings where id = $1`, [L2])).length === 0, 'a paused listing is hidden from other members'));
+  await as(farmerU.id, async () => ok((await q(`select id from public.listings where id = $1`, [L2])).length === 1, 'the farmer still sees their paused listing'));
+  const pausedAccept = await throws(() => asService(() => q(`select public.accept_offer($1,$2,'x')`, [offerA, buyerU.id])));
+  ok(pausedAccept && /paused/.test(pausedAccept), 'an offer on a paused listing cannot be accepted');
+  await q(`update public.listings set paused = false where id = $1`, [L2]);
+
+  const stale = await throws(() => asService(() => q(`select public.accept_offer($1,$2,'buyer',0)`, [offerA, buyerU.id])));
+  ok(stale && /terms changed/.test(stale), 'accepting with out-of-date terms is refused', stale);
+  let order2;
+  await asService(async () => { [{ accept_offer: order2 }] = await q(`select public.accept_offer($1,$2,'buyer',1)`, [offerA, buyerU.id]); });
+  const [o2] = await q(`select goods_paise, quantity_kg from public.orders where id = $1`, [order2]);
+  ok(Number(o2.goods_paise) === 3000 * 2500, 'accepting a counter creates the order at the countered terms');
+  const thread = await q(`select kind, party_id from public.offer_messages where offer_id = $1 order by id`, [offerA]);
+  ok(thread.map((m) => m.kind).join(',') === 'offer,counter,accept' && thread[2].party_id === Bp.party, 'the thread records offer, counter and who accepted', JSON.stringify(thread));
+  const [ev2] = await q(`select message from public.order_events where order_id = $1 and kind = 'created'`, [order2]);
+  ok(/after negotiation/.test(ev2.message), 'the order timeline notes the negotiation');
+
+  // Minimum order on acceptance; the last remainder may be smaller
+  await asService(async () => {
+    [{ id: offerB }] = await q(`insert into public.offers (listing_id, party_id, quantity_kg, price_paise_per_kg) values ($1,$2,500,2600) returning id`, [L2, O.party]);
+  });
+  const moqAccept = await throws(() => asService(() => q(`select public.accept_offer($1,$2,'x')`, [offerB, farmerU.id])));
+  ok(moqAccept && /minimum order/.test(moqAccept), 'an offer below the minimum order cannot be accepted');
+  await asService(async () => {
+    await q(`update public.listings set quantity_kg = 500 where id = $1`, [L2]);
+    await q(`select public.accept_offer($1,$2,'x')`, [offerB, farmerU.id]);
+  });
+  ok((await q(`select status from public.listings where id = $1`, [L2]))[0].status === 'closed', 'the last remainder below the minimum can still be sold');
+
+  // Threads follow offer visibility, and can't be rewritten or written by users
+  await as(buyerU.id, async () => ok((await q(`select id from public.offer_messages where offer_id = $1`, [offerA])).length === 3, 'the offerer reads the thread'));
+  await as(farmerU.id, async () => ok((await q(`select id from public.offer_messages where offer_id = $1`, [offerA])).length === 3, 'the post owner reads the thread'));
+  await as(otherU.id, async () => ok((await q(`select id from public.offer_messages where offer_id = $1`, [offerA])).length === 0, 'others cannot read the thread'));
+  const rewrite = await throws(() => asService(() => q(`update public.offer_messages set message = 'x' where offer_id = $1`, [offerA])));
+  ok(rewrite && /append-only/.test(rewrite), 'offer messages cannot be rewritten');
+
+  // Completed-trades counter
+  const trades = async (id) => (await q(`select completed_trades n from public.parties where id = $1`, [id]))[0].n;
+  const before = [await trades(F.party), await trades(Bp.party)];
+  await asService(() => q(`select public.set_order_status($1, 'confirmed', 'completed', null, 'x', null)`, [order2]));
+  ok(await trades(F.party) === before[0] + 1 && await trades(Bp.party) === before[1] + 1, 'completing an order counts a trade for both sides');
+  await asService(() => q(`select public.set_order_status($1, 'completed', 'disputed', null, 'x', null)`, [order2]));
+  ok(await trades(F.party) === before[0], 'reopening a completed order takes the trade back');
+
+  // Reference prices and finance (server only)
+  await asService(() => q(`insert into public.market_prices (commodity_id, market, price_date, min_paise_per_kg, modal_paise_per_kg, max_paise_per_kg) values ($1,'Nagaon','2026-11-20',2200,2300,2400)`, [comm.id]));
+  await as(buyerU.id, async () => ok((await q(`select id from public.market_prices`)).length === 1, 'members read reference prices'));
+  const badPrice = await throws(() => asService(() => q(`insert into public.market_prices (commodity_id, market, price_date, min_paise_per_kg, modal_paise_per_kg) values ($1,'X','2026-11-20',2500,2300)`, [comm.id])));
+  ok(badPrice && /check/.test(badPrice), 'a minimum above the modal price is refused');
+  const [{ finance_summary: fin }] = await asService(() => q(`select public.finance_summary()`));
+  ok(fin && Number(fin.money_in) > 0 && fin.overpaid_orders === 1 && typeof fin.orders_by_status === 'object', 'finance_summary aggregates payments and flags', JSON.stringify(fin));
+  await asService(() => q(`select public.set_order_status($1, 'ready', 'delivered', null, 'x', null)`, [orderId]));
+  const due = await asService(() => q(`select * from public.payouts_due(50)`));
+  ok(due.some((d) => d.order_id === orderId && d.payee_role === 'farmer' && Number(d.due) > 0), 'payouts_due lists the farmer of a delivered order');
+
+  for (const [label, sql, params] of [
+    ['insert an offer message', `insert into public.offer_messages (offer_id, party_id, kind) values ($1,$2,'counter')`, [offerA, F.party]],
+    ['insert a market price', `insert into public.market_prices (commodity_id, market, price_date, modal_paise_per_kg) values ($1,'Y','2026-11-21',1)`, [comm.id]],
+    ['call counter_offer', `select public.counter_offer($1,$2,1,1,null,null)`, [offerA, F.party]],
+    ['call finance_summary', `select public.finance_summary()`, []],
+    ['call payouts_due', `select * from public.payouts_due(10)`, []],
+    ['set own trust flags', `update public.parties set kyc_verified = true where id = $1`, [F.party]],
+  ]) {
+    const e = await throws(() => as(farmerU.id, () => q(sql, params)));
+    ok(e && /permission denied/.test(e), `authenticated cannot ${label}`, e ?? 'succeeded!');
+  }
+  await as(farmerU.id, async () => ok((await q(`select id from public.vehicle_rates`)).length === 0, 'members do not see the freight rate card'));
+
+  // Deleting an offer (demo cleanup) takes its thread with it, despite the append-only trigger
+  let delOffer;
+  await asService(async () => {
+    const [{ id: L3 }] = await q(`insert into public.listings (farmer_id, commodity_id, quantity_kg, price_paise_per_kg) values ($1,$2,100,100) returning id`, [F.party, comm.id]);
+    [{ id: delOffer }] = await q(`insert into public.offers (listing_id, party_id, quantity_kg, price_paise_per_kg) values ($1,$2,10,90) returning id`, [L3, Bp.party]);
+    await q(`select public.counter_offer($1,$2,10,95,null,null)`, [delOffer, F.party]);
+    await q(`delete from public.offers where id = $1`, [delOffer]);
+  });
+  ok((await q(`select count(*)::int n from public.offer_messages where offer_id = $1`, [delOffer]))[0].n === 0, 'deleting an offer cascades to its thread');
+
   await db.end();
+
+  // ================= Upgrade path: 0002 on a database that already has 0001 data =================
+  const root2 = new Client({ connectionString: BASE });
+  await root2.connect();
+  await root2.query('drop database if exists agrimate_test'); await root2.query('create database agrimate_test'); await root2.end();
+  const up = new Client({ connectionString: testUrl() });
+  await up.connect();
+  await up.query(SUPA);
+  const files = fs.readdirSync(MIGRATIONS).filter((n) => n.endsWith('.sql')).sort();
+  await up.query(fs.readFileSync(path.join(MIGRATIONS, files[0]), 'utf8'));
+  const uq = (s, p) => up.query(s, p).then((r) => r.rows);
+  const [[fp], [bp]] = await Promise.all([
+    uq(`insert into public.parties (type, name) values ('farmer','F') returning id`),
+    uq(`insert into public.parties (type, name) values ('buyer','B') returning id`),
+  ]);
+  const [uc] = await uq(`select id from public.commodities limit 1`);
+  const [ul] = await uq(`insert into public.listings (farmer_id, commodity_id, quantity_kg, price_paise_per_kg) values ($1,$2,100,100) returning id`, [fp.id, uc.id]);
+  await uq(`insert into public.offers (listing_id, party_id, quantity_kg, price_paise_per_kg, message) values ($1,$2,10,90,'old offer')`, [ul.id, bp.id]);
+  await uq(`insert into public.orders (buyer_id, farmer_id, commodity_id, quantity_kg, price_paise_per_kg, goods_paise, commission_bps, status) values ($1,$2,$3,1,1,1,0,'completed')`, [bp.id, fp.id, uc.id]);
+  for (const f of files.slice(1)) await up.query(fs.readFileSync(path.join(MIGRATIONS, f), 'utf8'));
+  const [uo] = await uq(`select last_by, party_id from public.offers`);
+  const um = await uq(`select kind, message from public.offer_messages`);
+  ok(uo.last_by === uo.party_id && um.length === 1 && um[0].message === 'old offer', 'upgrade: existing offers get last_by and an opening message');
+  const [ut] = await uq(`select completed_trades n from public.parties where id = $1`, [fp.id]);
+  ok(ut.n === 1, 'upgrade: completed trades are backfilled');
+  await up.end();
+
+  console.log(`\n${pass} passed, ${failN} failed`);
   process.exit(failN ? 1 : 0);
 })().catch((e) => { console.error('ERROR', e.message, e.position ? `at ${e.position}` : '', e.where ?? ''); process.exit(2); });

@@ -14,6 +14,11 @@ export interface Party {
   pin: string | null;
   verified: boolean;
   active: boolean;
+  kyc_verified: boolean;
+  gst_verified: boolean;
+  bank_verified: boolean;
+  is_fpo: boolean;
+  completed_trades: number;
   user_id: string | null;
   created_at: string;
 }
@@ -38,6 +43,9 @@ export interface Listing {
   id: string; code: string; farmer_id: string; commodity_id: string; grade: string | null; quantity_kg: number;
   price_paise_per_kg: number; location: string | null; pin: string | null; available_from: string | null;
   notes: string | null; status: 'open' | 'closed'; created_at: string;
+  min_order_kg: number | null; packaging: string | null; harvest: string | null;
+  moisture_pct: number | null; foreign_matter_pct: number | null; broken_pct: number | null; purity_pct: number | null;
+  negotiable: boolean; paused: boolean;
 }
 
 export interface Requirement {
@@ -49,7 +57,22 @@ export interface Requirement {
 export interface Offer {
   id: string; listing_id: string | null; requirement_id: string | null; party_id: string; quantity_kg: number;
   price_paise_per_kg: number; message: string | null; status: 'pending' | 'accepted' | 'rejected' | 'withdrawn';
+  last_by: string; counters: number; created_at: string;
+}
+
+export interface OfferMessage {
+  id: number; offer_id: string; party_id: string; kind: 'offer' | 'counter' | 'accept' | 'reject' | 'withdraw';
+  quantity_kg: number | null; price_paise_per_kg: number | null; message: string | null; created_at: string;
+}
+
+export interface MarketPrice {
+  id: string; commodity_id: string; market: string; state: string | null; price_date: string;
+  min_paise_per_kg: number | null; modal_paise_per_kg: number; max_paise_per_kg: number | null; source: string | null;
   created_at: string;
+}
+
+export interface VehicleRate {
+  id: string; name: string; capacity_kg: number; rate_paise_per_km: number; min_charge_paise: number; active: boolean;
 }
 
 export interface Order {

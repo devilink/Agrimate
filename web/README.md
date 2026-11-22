@@ -19,11 +19,36 @@ confirmed → quality_check → ready → in_transit → delivered → completed
 
 | Who | Can do |
 |---|---|
-| Farmer / FPO | List produce, make offers on requirements, accept buyer offers, mark the produce ready, upload documents |
-| Buyer | Post requirements, make offers on listings, accept farmer offers, pay online, confirm delivery or raise a dispute |
+| Farmer / FPO | List graded lots (quality specs, minimum order, packaging, fixed or negotiable price), edit, pause or close them, negotiate offers, mark the produce ready, upload documents |
+| Buyer | Post requirements, make and counter offers, accept, pay online, confirm delivery or raise a dispute |
 | Transporter | See assigned trips, mark them picked up and delivered, upload proof of delivery |
 | Inspector | See assigned quality checks, submit pass/fail with notes and photos |
-| Admin | Everything above, on behalf of anyone. Add offline parties, enter phone deals as orders, assign inspectors and transport, set freight, record and void payments, add internal notes, verify accounts, manage commodities and the platform fee |
+| Admin | Everything above, on behalf of anyone. Plus: the finance overview and payouts queue, the payments ledger, CSV exports, all offers, reference market prices, the freight rate card, the verification checklist, offline parties, phone deals, internal notes and the activity log |
+
+## Features
+
+- **Market.** Filter by commodity, grade, state, maximum price and verified traders only. Search and sort. Results are
+  paged and every filter lives in the URL, so it works without JavaScript and links can be shared. Quantities and
+  prices show in kg, quintals or tonnes; storage is always kg and paise.
+- **Listings.** Quality specs (moisture, foreign matter, broken, purity), minimum order, packaging, harvest, and fixed or
+  negotiable price. Farmers can type quantities and prices per kg, quintal or tonne. *My listings* lets a farmer edit
+  price and quantity, pause, resume or close lots, and see which offers wait on them.
+- **Negotiation.** Each offer is a thread. The two sides take turns: whoever did not set the current terms can accept,
+  counter or decline. The database enforces the turn, the minimum order and paused listings, and keeps the thread
+  append-only. Accepting creates the order at the latest terms.
+- **Trust badges.** Admins tick a checklist on each party (identity, GSTIN, bank account, registered FPO). Members
+  see *Verified*, *Trusted* (full checklist and 10+ completed trades) and *FPO* badges. Completed trades are counted by
+  a database trigger.
+- **Reference prices.** The team enters mandi prices (from Agmarknet, eNAM or traders) under *Reference prices*.
+  Members see a 90-day trend and each listing shows how its price compares. Nothing is simulated: with no entries
+  the pages say so.
+- **Admin.**
+  - *Overview*: money held, owed by buyers, farmer payouts due, fees earned, stale and overpaid orders.
+  - *Payouts queue*: farmers until paid in full; transporters until their first payout.
+  - *Payments ledger*: filters, plus a CSV export. Orders can be exported to CSV too.
+  - *Offers*: who each negotiation is waiting on.
+  - *Activity log*: paginated.
+  - *Freight rate card*: suggests freight on each order from distance and vehicle.
 
 Money: the buyer pays goods plus freight. The farmer receives goods minus the platform fee, a percentage that is
 copied onto each order when it is created. Payouts to farmers and transporters happen outside the app (bank or UPI)
@@ -34,8 +59,12 @@ and are recorded on the order with their UTR.
 ### 1. Supabase
 
 1. Create a project, in the Mumbai region if your users are in India.
-2. In **SQL Editor**, run [supabase/migrations/0001_init.sql](./supabase/migrations/0001_init.sql) once. It creates the tables, the security rules, the private `documents` storage bucket and some starter commodities.
+2. In **SQL Editor**, run each file in [supabase/migrations](./supabase/migrations) once, **in order**:
+   - [0001_init.sql](./supabase/migrations/0001_init.sql): the tables, the security rules, the private `documents` storage bucket and some starter commodities.
+   - [0002_marketplace_depth.sql](./supabase/migrations/0002_marketplace_depth.sql): quality specs, minimum orders and pausing, negotiation threads, trust flags, reference prices, the freight rate card, and the admin finance functions.
+
    Use a **new project**. The old Agrimate database has its own tables, so don't mix the two.
+   **Upgrading a live project** that only has 0001? Run 0002 once. It backfills existing offers and completed-trade counts, and it is covered by the database tests.
 3. In **Authentication > URL Configuration**:
    - Set **Site URL** to your Vercel domain, e.g. `https://agrimate.vercel.app`.
    - Add `https://YOUR-DOMAIN/**` and `http://localhost:3000/**` to **Redirect URLs**.
@@ -77,6 +106,27 @@ where user_id = (select id from auth.users where email = 'you@example.com');
 ```
 
 You can delete the buyer party created at signup from the Table Editor if you like. After that, add more admins from **Settings** in the app.
+
+### 4b. Demo logins for every role (optional)
+
+```bash
+node scripts/demo-accounts.mjs              # sets a fresh random password on each demo login, checks it, seeds data
+DEMO_PASSWORD='...' node scripts/demo-accounts.mjs --no-seed   # one chosen password for all, no data
+node scripts/demo-accounts.mjs --seed-only  # test data only, passwords untouched
+node scripts/demo-accounts.mjs --remove-data # deletes all [demo] test data (the accounts stay)
+```
+
+It manages one login per role (admin, farmer, buyer, transporter, inspector), `*@yourdomain.com` by default
+(override with `DEMO_<ROLE>_EMAIL`), creates any that are missing as verified accounts, and prints the passwords
+once. The test data is tagged `[demo]`:
+
+- open listings (with quality specs and minimum orders), requirements and pending offers, one of them mid-negotiation;
+- sample reference prices, labelled "[demo] sample data, not a real price" in their source;
+- two offline parties, one of them waiting for verification;
+- eight orders, one in each status from confirmed to cancelled. Each follows the real flow: inspector and transporter
+  assigned, inspection result, payments in and payouts out, PDF documents, a dispute, and a backdated timeline.
+
+`--remove-data` deletes it all again, including the stored files.
 
 ### 5. Razorpay
 
@@ -128,15 +178,18 @@ Without Razorpay keys the site still works. The online pay button is hidden, and
 
 ### Database tests
 
-`supabase/tests/migration.test.cjs` applies the migration to a **throwaway local Postgres** (never your Supabase
-project) with stand-ins for Supabase's `auth` and `storage` schemas, then checks 42 rules:
+`supabase/tests/migration.test.cjs` applies every migration, in order, to a **throwaway local Postgres** (never your
+Supabase project) with stand-ins for Supabase's `auth` and `storage` schemas, then checks 76 rules:
 
 - signup roles, and admin and offline-party linking;
 - who can read what, and that browser writes and function calls are refused;
 - deactivation;
 - payments recorded only once, and overpayment flags;
 - the append-only timeline;
-- offer acceptance.
+- offer acceptance;
+- negotiation turns, minimum orders and paused listings;
+- thread visibility, the completed-trades counter, reference prices and the finance functions;
+- upgrading a database that already holds 0001 data.
 
 ```bash
 TEST_PG_URL=postgres://postgres@localhost:5432/postgres pnpm test:db
@@ -144,8 +197,10 @@ TEST_PG_URL=postgres://postgres@localhost:5432/postgres pnpm test:db
 
 ## Not included (yet)
 
-- GST invoices. Upload invoices as documents for now.
+- GST invoices and GST on the platform fee. Upload invoices as documents for now; the tax treatment needs a CA.
+- Automatic mandi price feeds. The Agmarknet API (data.gov.in) could fill *Reference prices* automatically; until then the team enters them.
+- Ratings and reviews between traders. Trust badges come from the checklist and completed trades.
 - SMS or WhatsApp notifications.
 - Phone OTP login. You can switch it on in Supabase Auth once an SMS provider is configured; the app would need a small login change.
-- Hindi, Assamese and Bengali translations, which the old farmer app had.
+- Hindi, Assamese and Bengali translations, which the old farmer app had. The UI is English only.
 - Automatic refunds and payouts through Razorpay. Refunds are issued from the Razorpay dashboard, then voided on the order.

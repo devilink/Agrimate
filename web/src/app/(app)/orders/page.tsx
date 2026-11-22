@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getCommodities, getPartyMap, partyLabel } from '@/lib/data';
 import { dateIN, kg, rupees } from '@/lib/money';
 import { STATUS_LABEL, STATUS_ORDER } from '@/lib/orders';
-import { Badge, ButtonLink, Card, Empty, FilterPills, PageHeader, Table, Td, statusTone } from '@/components/ui';
+import { Badge, ButtonLink, buttonClass, Card, Empty, FilterPills, PageHeader, Table, Td, statusTone } from '@/components/ui';
 import { IconChevronRight, IconPackage, IconPlus, IconTruck } from '@/components/icons';
 import type { Order, OrderStatus } from '@/lib/types';
 
@@ -33,7 +33,10 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
       <PageHeader
         title={jobsOnly ? 'My jobs' : 'Orders'}
         subtitle={jobsOnly ? `Orders where you are the assigned ${viewer.party?.type}.` : 'Every deal, from confirmation to completion.'}
-        action={viewer.isAdmin ? <ButtonLink href="/admin/orders/new"><IconPlus />Enter an offline order</ButtonLink> : undefined}
+        action={viewer.isAdmin ? <>
+          <a href={`/orders/export${active ? `?status=${active}` : ''}`} className={buttonClass('secondary')}>Export CSV</a>
+          <ButtonLink href="/admin/orders/new"><IconPlus />Enter an offline order</ButtonLink>
+        </> : undefined}
       />
       <FilterPills
         label="Filter by status"

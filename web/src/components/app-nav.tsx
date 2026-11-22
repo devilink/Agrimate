@@ -6,20 +6,26 @@ import { useEffect, useState } from 'react';
 import { signOut } from '@/app/actions/auth';
 import { Avatar, Badge, Logo, cx } from '@/components/ui';
 import {
-  IconDashboard, IconLogOut, IconMenu, IconPackage, IconPlusCircle, IconSliders, IconStore, IconTruck, IconUser, IconUsers, IconX,
+  IconClipboardCheck, IconClock, IconDashboard, IconHandshake, IconLogOut, IconMenu, IconPackage, IconPlusCircle, IconRupee,
+  IconScale, IconSliders, IconSprout, IconStore, IconTruck, IconUser, IconUsers, IconWallet, IconX,
 } from '@/components/icons';
 
 const ICONS = {
   dashboard: IconDashboard, market: IconStore, orders: IconPackage, jobs: IconTruck, parties: IconUsers,
-  'new-order': IconPlusCircle, settings: IconSliders, account: IconUser,
+  'new-order': IconPlusCircle, settings: IconSliders, account: IconUser, listings: IconSprout, requirements: IconClipboardCheck,
+  prices: IconScale, overview: IconRupee, offers: IconHandshake, payments: IconWallet, activity: IconClock,
 } as const;
 export type NavIcon = keyof typeof ICONS;
 export interface NavLink { href: string; label: string; icon: NavIcon }
 export interface NavGroup { label?: string; links: NavLink[] }
 
+const POST_DETAIL = /^\/(listings|requirements)\/[0-9a-f-]{36}$/i;
+
 function isActive(path: string, href: string) {
-  if (href === '/dashboard') return path === '/dashboard';
-  if (href === '/market') return ['/market', '/listings', '/requirements'].some((p) => path === p || path.startsWith(`${p}/`));
+  if (href === '/dashboard' || href === '/admin') return path === href;
+  // Listing and requirement pages belong to the market; the index and "new" pages to My listings / requirements.
+  if (href === '/market') return path === '/market' || POST_DETAIL.test(path);
+  if (href === '/listings' || href === '/requirements') return path === href || path === `${href}/new`;
   // "/orders" should also light up for "/orders/abc", but "/admin/orders/new" is its own entry.
   return path === href || path.startsWith(`${href}/`);
 }

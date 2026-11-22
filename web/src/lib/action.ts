@@ -55,6 +55,15 @@ export function int(form: FormData, name: string, label: string, { min = 1, max 
   return n;
 }
 
+/** Optional percentage, 0 to 100 with up to 2 decimals (quality specs). */
+export function pct(form: FormData, name: string, label: string): number | null {
+  const v = text(form, name, 8);
+  if (v === null) return null;
+  const n = Number(v);
+  if (!/^\d{1,3}(\.\d{1,2})?$/.test(v) || n < 0 || n > 100) fail(`${label} must be a percentage between 0 and 100.`);
+  return n;
+}
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function uuid(form: FormData, name: string): string {
   const v = form.get(name);
